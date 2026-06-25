@@ -1,0 +1,5 @@
+#%PAM-1.0
+# Test PAM configuration for device authenticator
+auth       required pam_authenticator.so
+account    required pam_permit.so
+session    required pam_permit.so

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<results version="2">
+    <cppcheck version="2.20.0"/>
+    <errors>
+        <error id="usleepCalled" severity="style" msg="Obsolescent function &apos;usleep&apos; called. It is recommended to use &apos;nanosleep&apos; or &apos;setitimer&apos; instead." verbose="The obsolescent function &apos;usleep&apos; is called. POSIX.1-2001 declares usleep() function obsolescent and POSIX.1-2008 removes it. It is recommended that new applications use the &apos;nanosleep&apos; or &apos;setitimer&apos; function." cwe="477" file0="communication/websocket/websocket.c">
+            <location file="communication/websocket/websocket.c" line="386" column="9"/>
+        </error>
+        <error id="constVariablePointer" severity="style" msg="Variable &apos;active_client&apos; can be declared as pointer to const" verbose="Variable &apos;active_client&apos; can be declared as pointer to const" cwe="398" file0="communication/websocket/websocket.c">
+            <location file="communication/websocket/websocket.c" line="107" column="17" info="Variable &apos;active_client&apos; can be declared as pointer to const"/>
+            <symbol>active_client</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;wsi&apos; can be declared as pointer to const" verbose="Parameter &apos;wsi&apos; can be declared as pointer to const" cwe="398" file0="communication/websocket/websocket.c">
+            <location file="communication/websocket/websocket.c" line="211" column="43" info="Parameter &apos;wsi&apos; can be declared as pointer to const"/>
+            <symbol>wsi</symbol>
+        </error>
+        <error id="checkersReport" severity="information" msg="Active checkers: 119/186 (use --checkers-report=&lt;filename&gt; to see details)" verbose="Active checkers: 119/186 (use --checkers-report=&lt;filename&gt; to see details)"/>
+    </errors>
+</results>

@@ -1,0 +1,835 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<results version="2">
+    <cppcheck version="2.20.0"/>
+    <errors>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/authenticator.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;config_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;config_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/authenticator.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/authenticator.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/authenticator.c" line="7" column="2"/>
+        </error>
+        <error id="toomanyconfigs" severity="information" msg="Too many #ifdef configurations - cppcheck only checks 12 of 164 configurations. Use --force to check all configurations." verbose="Too many #ifdef configurations - cppcheck only checks 12 of 164 configurations. Use --force to check all configurations." cwe="398">
+            <location file="PAM/build/CMakeFiles/4.2.3/CompilerIdC/CMakeCCompilerId.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/socket.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/socket.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/select.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/select.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;netinet/in.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;netinet/in.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;netinet/tcp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;netinet/tcp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="12" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="13" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/rfcomm.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/rfcomm.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="14" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="15" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="16" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/hci.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/hci.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="17" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/hci_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/hci_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="18" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.h" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.h" line="5" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/bluetooth/bt_client.c">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="12" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/bluetooth/sdp_manager.c">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="0" column="0"/>
+        </error>
+        <error id="constVariable" severity="style" msg="Variable &apos;byte_str&apos; can be declared as const array" verbose="Variable &apos;byte_str&apos; can be declared as const array" cwe="398" file0="PAM/communication/bluetooth/sdp_manager.c">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="75" column="14" info="Variable &apos;byte_str&apos; can be declared as const array"/>
+            <symbol>byte_str</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/bluetooth/bluetooth_service.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="12" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="13" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/connection_manager.c" line="14" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/connection_manager.c">
+            <location file="PAM/communication/connection_manager.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.h" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stddef.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.h" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.h" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;fcntl.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;fcntl.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="12" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="13" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/message_manager.c" line="14" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/message_manager.c">
+            <location file="PAM/communication/message_manager.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/phone_connection.c" line="11" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/phone_connection.c">
+            <location file="PAM/communication/phone_connection.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/socket.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/socket.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;netinet/in.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;netinet/in.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;arpa/inet.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;arpa/inet.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="13" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="14" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="15" column="2"/>
+        </error>
+        <error id="shadowVariable" severity="style" msg="Local variable &apos;sock&apos; shadows outer variable" verbose="Local variable &apos;sock&apos; shadows outer variable" cwe="398" file0="PAM/communication/websocket/udp_broadcast.c">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="25" column="9" info="Shadow variable"/>
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="19" column="12" info="Shadowed declaration"/>
+            <symbol>sock</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;libwebsockets.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket.c" line="7" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/communication/websocket/websocket.c">
+            <location file="PAM/communication/websocket/websocket.c" line="0" column="0"/>
+        </error>
+        <error id="constVariablePointer" severity="style" msg="Variable &apos;active_client&apos; can be declared as pointer to const" verbose="Variable &apos;active_client&apos; can be declared as pointer to const" cwe="398" file0="PAM/communication/websocket/websocket.c">
+            <location file="PAM/communication/websocket/websocket.c" line="107" column="17" info="Variable &apos;active_client&apos; can be declared as pointer to const"/>
+            <symbol>active_client</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;wsi&apos; can be declared as pointer to const" verbose="Parameter &apos;wsi&apos; can be declared as pointer to const" cwe="398" file0="PAM/communication/websocket/websocket.c">
+            <location file="PAM/communication/websocket/websocket.c" line="211" column="43" info="Parameter &apos;wsi&apos; can be declared as pointer to const"/>
+            <symbol>wsi</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.h" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.h" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/udp_broadcast.h" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdbool.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="12" column="2"/>
+        </error>
+        <error id="constParameterCallback" severity="style" msg="Parameter &apos;arg&apos; can be declared as pointer to const. However it seems that &apos;ws_service_loop&apos; is a callback function, if &apos;arg&apos; is declared with const you might also need to cast function pointer(s)." verbose="Parameter &apos;arg&apos; can be declared as pointer to const. However it seems that &apos;ws_service_loop&apos; is a callback function, if &apos;arg&apos; is declared with const you might also need to cast function pointer(s)." cwe="398" file0="PAM/communication/websocket/websocket_service.c">
+            <location file="PAM/communication/websocket/websocket_service.c" line="67" column="29" info="Parameter &apos;arg&apos; can be declared as pointer to const"/>
+            <location file="PAM/communication/websocket/websocket_service.c" line="106" column="50" info="You might need to cast the function pointer here"/>
+            <symbol>arg</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pwd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pwd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/config_manager.c" line="9" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/config_manager.c">
+            <location file="PAM/config_manager.c" line="0" column="0"/>
+        </error>
+        <error id="constVariablePointer" severity="style" msg="Variable &apos;key&apos; can be declared as pointer to const" verbose="Variable &apos;key&apos; can be declared as pointer to const" cwe="398" file0="PAM/config_manager.c">
+            <location file="PAM/config_manager.c" line="90" column="15" info="Variable &apos;key&apos; can be declared as pointer to const"/>
+            <symbol>key</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/rsa.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/rsa.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/rand.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/rand.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="8" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/cryptography/cryptographic_methods.c">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="0" column="0"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.h" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/evp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/cryptography/key_manager.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdarg.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdarg.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/log_manager.c" line="16" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/log_manager.c" line="17" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/log_manager.c" line="18" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/log_manager.c" line="19" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/main.c" line="6" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/main.c">
+            <location file="PAM/main.c" line="0" column="0"/>
+        </error>
+        <error id="redundantInitialization" severity="style" msg="Redundant initialization for &apos;result&apos;. The initialized value is overwritten before it is read." verbose="Redundant initialization for &apos;result&apos;. The initialized value is overwritten before it is read." cwe="563" file0="PAM/main.c">
+            <location file="PAM/main.c" line="71" column="12" info="result is overwritten"/>
+            <location file="PAM/main.c" line="68" column="23" info="result is initialized"/>
+            <symbol>result</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;security/pam_modules.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;security/pam_modules.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;security/pam_appl.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;security/pam_appl.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;time.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pwd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pwd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/pam_authenticator.c" line="10" column="2"/>
+        </error>
+        <error id="redundantInitialization" severity="style" msg="Redundant initialization for &apos;result&apos;. The initialized value is overwritten before it is read." verbose="Redundant initialization for &apos;result&apos;. The initialized value is overwritten before it is read." cwe="563" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="42" column="12" info="result is overwritten"/>
+            <location file="PAM/pam_authenticator.c" line="26" column="23" info="result is initialized"/>
+            <symbol>result</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;pamh&apos; can be declared as pointer to const" verbose="Parameter &apos;pamh&apos; can be declared as pointer to const" cwe="398" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="86" column="45" info="Parameter &apos;pamh&apos; can be declared as pointer to const"/>
+            <symbol>pamh</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;pamh&apos; can be declared as pointer to const" verbose="Parameter &apos;pamh&apos; can be declared as pointer to const" cwe="398" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="92" column="47" info="Parameter &apos;pamh&apos; can be declared as pointer to const"/>
+            <symbol>pamh</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;pamh&apos; can be declared as pointer to const" verbose="Parameter &apos;pamh&apos; can be declared as pointer to const" cwe="398" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="98" column="50" info="Parameter &apos;pamh&apos; can be declared as pointer to const"/>
+            <symbol>pamh</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;pamh&apos; can be declared as pointer to const" verbose="Parameter &apos;pamh&apos; can be declared as pointer to const" cwe="398" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="103" column="51" info="Parameter &apos;pamh&apos; can be declared as pointer to const"/>
+            <symbol>pamh</symbol>
+        </error>
+        <error id="constParameterPointer" severity="style" msg="Parameter &apos;pamh&apos; can be declared as pointer to const" verbose="Parameter &apos;pamh&apos; can be declared as pointer to const" cwe="398" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="109" column="47" info="Parameter &apos;pamh&apos; can be declared as pointer to const"/>
+            <symbol>pamh</symbol>
+        </error>
+        <error id="unreadVariable" severity="style" msg="Variable &apos;device_uuid&apos; is assigned a value that is never used." verbose="Variable &apos;device_uuid&apos; is assigned a value that is never used." cwe="563" file0="PAM/pam_authenticator.c">
+            <location file="PAM/pam_authenticator.c" line="25" column="17"/>
+            <symbol>device_uuid</symbol>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;key_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;key_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="1" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdio.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="2" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdlib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="3" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;string.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="4" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;unistd.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="5" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;pthread.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="6" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/stat.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="7" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;errno.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="8" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;log_manager.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="9" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/select.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/select.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="10" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;sys/syslog.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="11" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;ctype.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="12" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/rand.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/rand.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="13" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/x509v3.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/x509v3.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="14" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/pem.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="15" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/sha.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/sha.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="16" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/err.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/err.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="17" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;openssl/rsa.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;openssl/rsa.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="18" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdint.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="19" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;stdatomic.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="20" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/bluetooth.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="21" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/rfcomm.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/rfcomm.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="22" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="23" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/sdp_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="24" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/hci.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/hci.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="25" column="2"/>
+        </error>
+        <error id="missingIncludeSystem" severity="information" msg="Include file: &lt;bluetooth/hci_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results." verbose="Include file: &lt;bluetooth/hci_lib.h&gt; not found. Please note: Standard library headers do not need to be provided to get proper results.">
+            <location file="PAM/setup_server.c" line="26" column="2"/>
+        </error>
+        <error id="normalCheckLevelMaxBranches" severity="information" msg="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." verbose="Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches." file0="PAM/setup_server.c">
+            <location file="PAM/setup_server.c" line="0" column="0"/>
+        </error>
+        <error id="variableScope" severity="style" msg="The scope of the variable &apos;pki_dir&apos; can be reduced." verbose="The scope of the variable &apos;pki_dir&apos; can be reduced. Warning: Be careful when fixing this message, especially when there are inner loops. Here is an example where cppcheck will write that the scope for &apos;i&apos; can be reduced:\012void f(int x)\012{\012    int i = 0;\012    if (x) {\012        // it&apos;s safe to move &apos;int i = 0;&apos; here\012        for (int n = 0; n &lt; 10; ++n) {\012            // it is possible but not safe to move &apos;int i = 0;&apos; here\012            do_something(&amp;i);\012        }\012    }\012}\012When you see this message it is always safe to reduce the variable scope 1 level." cwe="398" file0="PAM/setup_server.c">
+            <location file="PAM/setup_server.c" line="298" column="17"/>
+            <symbol>pki_dir</symbol>
+        </error>
+        <error id="variableScope" severity="style" msg="The scope of the variable &apos;pub_path&apos; can be reduced." verbose="The scope of the variable &apos;pub_path&apos; can be reduced. Warning: Be careful when fixing this message, especially when there are inner loops. Here is an example where cppcheck will write that the scope for &apos;i&apos; can be reduced:\012void f(int x)\012{\012    int i = 0;\012    if (x) {\012        // it&apos;s safe to move &apos;int i = 0;&apos; here\012        for (int n = 0; n &lt; 10; ++n) {\012            // it is possible but not safe to move &apos;int i = 0;&apos; here\012            do_something(&amp;i);\012        }\012    }\012}\012When you see this message it is always safe to reduce the variable scope 1 level." cwe="398" file0="PAM/setup_server.c">
+            <location file="PAM/setup_server.c" line="300" column="17"/>
+            <symbol>pub_path</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;bt_service_loop&apos; is never used." verbose="The function &apos;bt_service_loop&apos; is never used." cwe="561">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="20" column="7"/>
+            <symbol>bt_service_loop</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;bluetooth_service_is_connected&apos; is never used." verbose="The function &apos;bluetooth_service_is_connected&apos; is never used." cwe="561">
+            <location file="PAM/communication/bluetooth/bluetooth_service.c" line="69" column="6"/>
+            <symbol>bluetooth_service_is_connected</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;find_rfcomm_channel&apos; is never used." verbose="The function &apos;find_rfcomm_channel&apos; is never used." cwe="561">
+            <location file="PAM/communication/bluetooth/sdp_manager.c" line="152" column="5"/>
+            <symbol>find_rfcomm_channel</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;connection_manager_is_connected&apos; is never used." verbose="The function &apos;connection_manager_is_connected&apos; is never used." cwe="561">
+            <location file="PAM/communication/connection_manager.c" line="262" column="6"/>
+            <symbol>connection_manager_is_connected</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;generate_signed_and_encrypted_message&apos; is never used." verbose="The function &apos;generate_signed_and_encrypted_message&apos; is never used." cwe="561">
+            <location file="PAM/communication/message_manager.c" line="212" column="5"/>
+            <symbol>generate_signed_and_encrypted_message</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;phone_connect&apos; is never used." verbose="The function &apos;phone_connect&apos; is never used." cwe="561">
+            <location file="PAM/communication/phone_connection.c" line="36" column="6"/>
+            <symbol>phone_connect</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;phone_send&apos; is never used." verbose="The function &apos;phone_send&apos; is never used." cwe="561">
+            <location file="PAM/communication/phone_connection.c" line="47" column="5"/>
+            <symbol>phone_send</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;phone_disconnect&apos; is never used." verbose="The function &apos;phone_disconnect&apos; is never used." cwe="561">
+            <location file="PAM/communication/phone_connection.c" line="213" column="6"/>
+            <symbol>phone_disconnect</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;config_manager_clear_cache&apos; is never used." verbose="The function &apos;config_manager_clear_cache&apos; is never used." cwe="561">
+            <location file="PAM/config_manager.c" line="247" column="6"/>
+            <symbol>config_manager_clear_cache</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;config_manager_get_auth_timeout_ms&apos; is never used." verbose="The function &apos;config_manager_get_auth_timeout_ms&apos; is never used." cwe="561">
+            <location file="PAM/config_manager.c" line="256" column="5"/>
+            <symbol>config_manager_get_auth_timeout_ms</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;crypto_sign_message_with_key&apos; is never used." verbose="The function &apos;crypto_sign_message_with_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="196" column="5"/>
+            <symbol>crypto_sign_message_with_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;crypto_verify_signature_with_key&apos; is never used." verbose="The function &apos;crypto_verify_signature_with_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="199" column="5"/>
+            <symbol>crypto_verify_signature_with_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;crypto_encrypt_message_with_key&apos; is never used." verbose="The function &apos;crypto_encrypt_message_with_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="202" column="5"/>
+            <symbol>crypto_encrypt_message_with_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;crypto_decrypt_message_with_key&apos; is never used." verbose="The function &apos;crypto_decrypt_message_with_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="205" column="5"/>
+            <symbol>crypto_decrypt_message_with_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;key_manager_load_private_key&apos; is never used." verbose="The function &apos;key_manager_load_private_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/key_manager.c" line="54" column="5"/>
+            <symbol>key_manager_load_private_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;key_manager_load_public_key&apos; is never used." verbose="The function &apos;key_manager_load_public_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/key_manager.c" line="69" column="5"/>
+            <symbol>key_manager_load_public_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;key_manager_free_key&apos; is never used." verbose="The function &apos;key_manager_free_key&apos; is never used." cwe="561">
+            <location file="PAM/cryptography/key_manager.c" line="84" column="6"/>
+            <symbol>key_manager_free_key</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_authenticate&apos; is never used." verbose="The function &apos;pam_sm_authenticate&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="59" column="16"/>
+            <symbol>pam_sm_authenticate</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_setcred&apos; is never used." verbose="The function &apos;pam_sm_setcred&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="86" column="16"/>
+            <symbol>pam_sm_setcred</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_acct_mgmt&apos; is never used." verbose="The function &apos;pam_sm_acct_mgmt&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="92" column="16"/>
+            <symbol>pam_sm_acct_mgmt</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_open_session&apos; is never used." verbose="The function &apos;pam_sm_open_session&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="98" column="16"/>
+            <symbol>pam_sm_open_session</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_close_session&apos; is never used." verbose="The function &apos;pam_sm_close_session&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="103" column="16"/>
+            <symbol>pam_sm_close_session</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;pam_sm_chauthtok&apos; is never used." verbose="The function &apos;pam_sm_chauthtok&apos; is never used." cwe="561">
+            <location file="PAM/pam_authenticator.c" line="109" column="16"/>
+            <symbol>pam_sm_chauthtok</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;hex_to_bytes&apos; is never used." verbose="The function &apos;hex_to_bytes&apos; is never used." cwe="561">
+            <location file="PAM/setup_server.c" line="171" column="12"/>
+            <symbol>hex_to_bytes</symbol>
+        </error>
+        <error id="unusedFunction" severity="style" msg="The function &apos;setup_server_start&apos; is never used." verbose="The function &apos;setup_server_start&apos; is never used." cwe="561">
+            <location file="PAM/setup_server.c" line="583" column="5"/>
+            <symbol>setup_server_start</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;connect_to_socket_by_addr&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;connect_to_socket_by_addr&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="68" column="6"/>
+            <symbol>connect_to_socket_by_addr</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;read_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;read_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="96" column="6"/>
+            <symbol>read_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;write_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;write_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/bluetooth/bt_client.c" line="157" column="6"/>
+            <symbol>write_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;attempt_bluetooth_connection&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;attempt_bluetooth_connection&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/connection_manager.c" line="34" column="7"/>
+            <symbol>attempt_bluetooth_connection</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;attempt_websocket_connection&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;attempt_websocket_connection&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/connection_manager.c" line="64" column="7"/>
+            <symbol>attempt_websocket_connection</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;generate_challenge&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;generate_challenge&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/message_manager.c" line="126" column="7"/>
+            <symbol>generate_challenge</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;generate_timestamp&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;generate_timestamp&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/message_manager.c" line="139" column="7"/>
+            <symbol>generate_timestamp</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;generate_challenge_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;generate_challenge_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/message_manager.c" line="150" column="7"/>
+            <symbol>generate_challenge_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;phone_send_auth_challenge&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;phone_send_auth_challenge&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/phone_connection.c" line="55" column="5"/>
+            <symbol>phone_send_auth_challenge</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;phone_receive_verified_response&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;phone_receive_verified_response&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/phone_connection.c" line="103" column="5"/>
+            <symbol>phone_receive_verified_response</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;socket_create_udp&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;socket_create_udp&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="24" column="5"/>
+            <symbol>socket_create_udp</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;send_udp_broadcast&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;send_udp_broadcast&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="30" column="5"/>
+            <symbol>send_udp_broadcast</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;advertising_thread&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;advertising_thread&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/websocket/udp_broadcast.c" line="59" column="7"/>
+            <symbol>advertising_thread</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;start_websocket_service&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;start_websocket_service&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="57" column="6"/>
+            <symbol>start_websocket_service</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;ws_service_loop&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;ws_service_loop&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/communication/websocket/websocket_service.c" line="67" column="7"/>
+            <symbol>ws_service_loop</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_sign_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_sign_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="13" column="5"/>
+            <symbol>crypto_sign_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_verify_signature&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_verify_signature&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="34" column="5"/>
+            <symbol>crypto_verify_signature</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_encrypt_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_encrypt_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="55" column="5"/>
+            <symbol>crypto_encrypt_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_decrypt_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_decrypt_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="90" column="5"/>
+            <symbol>crypto_decrypt_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_sign_and_encrypt&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_sign_and_encrypt&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="134" column="5"/>
+            <symbol>crypto_sign_and_encrypt</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;crypto_decrypt_and_verify&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;crypto_decrypt_and_verify&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/cryptography/cryptographic_methods.c" line="161" column="5"/>
+            <symbol>crypto_decrypt_and_verify</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;create_message&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;create_message&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/log_manager.c" line="21" column="6"/>
+            <symbol>create_message</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;log_error&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;log_error&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/log_manager.c" line="42" column="6"/>
+            <symbol>log_error</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;log_info&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;log_info&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/log_manager.c" line="46" column="6"/>
+            <symbol>log_info</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;log_debug&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;log_debug&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/log_manager.c" line="50" column="6"/>
+            <symbol>log_debug</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;log_warning&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;log_warning&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/log_manager.c" line="54" column="6"/>
+            <symbol>log_warning</symbol>
+        </error>
+        <error id="staticFunction" severity="style" msg="The function &apos;pam_authenticate_user&apos; should have static linkage since it is not used outside of its translation unit." verbose="The function &apos;pam_authenticate_user&apos; should have static linkage since it is not used outside of its translation unit.">
+            <location file="PAM/pam_authenticator.c" line="24" column="5"/>
+            <symbol>pam_authenticate_user</symbol>
+        </error>
+        <error id="checkersReport" severity="information" msg="Active checkers: 119/186 (use --checkers-report=&lt;filename&gt; to see details)" verbose="Active checkers: 119/186 (use --checkers-report=&lt;filename&gt; to see details)"/>
+    </errors>
+</results>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="1">
+    <paths>
+        <dir name="."/>
+    </paths>
+    <exclude>
+        <path>build/</path>
+        <path>cmake-build-debug/</path>
+        <path>/usr/include/</path>
+        <path>/usr/local/include/</path>
+    </exclude>
+    <includedir>
+        <dir name="."/>
+        <dir name="communication"/>
+        <dir name="cryptography"/>
+    </includedir>
+    <libraries>
+        <library>openssl</library>
+        <library>posix</library>
+    </libraries>
+    <platform type="unix64"/>
+</project>
