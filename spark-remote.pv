@@ -1,0 +1,143 @@
+(*
+ * Copyright (C) 2026 Archie Adams, Roberto Metere, University of York
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Secure Passwordless Authentication with Reveal-commtted Knowledge
+ *)
+set attacker = active.
+(* set preciseActions = true. *)
+
+(* The untrusted public network *)
+free c: channel.
+
+(* Human accept/reject authentication request *)
+free local_authenticator_input: channel [private].
+
+type pkey.
+type skey.
+type nonce.
+
+fun pk(skey): pkey.
+
+(* Public-Key Signatures *)
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; verify(sign(m, k), pk(k), m) = true.
+reduc forall m: bitstring, k: skey; getmess(sign(m, k)) = m.
+
+(* Asymmetric Encryption *)
+fun aenc(bitstring, pkey): bitstring.
+reduc forall m: bitstring, k: skey; adec(aenc(m, pk(k)), k) = m.
+
+(* Store valid key pairs by role *)
+table identitiesV(skey, pkey).
+table identitiesA(skey, pkey).
+
+(*
+ * The `trusted_keys` table models the local trust store collecting valid,
+ * successfully paired (Verifier Public Key, Authenticator Public Key) tuples.
+ * Crucially, this table is known by both verifier and authenticator after
+ * a succesful OOB setup.
+ *)
+table trusted_keys(pkey, pkey).
+
+
+event verifierStarted(pkey, pkey, nonce).
+event authenticatorFinished(pkey, pkey, nonce).
+event verifierSuccess(pkey, pkey, nonce).
+
+(* Verifier (V) *)
+let Verifier() =
+  (* Get a valid identity or fail *)
+  in(c, pk_V: pkey);
+  get identitiesV(sk_V, =pk_V) in
+  
+  (* Only valid key pairs will pass these two lines *)
+  in(c, pk_A: pkey);
+  get trusted_keys(=pk_V, =pk_A) in
+  
+  N <-R nonce;
+  event verifierStarted(pk_V, pk_A, N);
+  payload <- (N, pk_V, pk_A);
+  sig <- sign(payload, sk_V);
+  cipher <- aenc((payload, sig), pk_A);
+  out(c, cipher);
+  
+  in(c, cipher': bitstring);
+  let (payload': bitstring, sig': bitstring) = adec(cipher', sk_V) in
+  if verify(sig', pk_A, payload') then
+    let (=N, =pk_A, =pk_V) = payload' in
+    event verifierSuccess(pk_V, pk_A, N).
+
+(* Authenticator (A) *)
+let Authenticator() =
+  (* Get a valid identity or fail *)
+  in(c, pk_A: pkey);
+  get identitiesA(sk_A, =pk_A) in
+  
+  in(c, cipher: bitstring);
+  let (payload: bitstring, sig: bitstring) = adec(cipher, sk_A) in
+  let (N': nonce, pk_V': pkey, =pk_A) = payload in
+  if verify(sig, pk_V', payload) then
+    (* Only trusted verifiers allowed *)
+    get trusted_keys(=pk_V', =pk_A) in
+    
+    (* The phone UI halts and waits for the user to tap the button  *)
+    in(local_authenticator_input, approved: bool);
+    if approved = true then
+      event authenticatorFinished(pk_V', pk_A, N');
+      payload' <- (N', pk_A, pk_V');
+      sig' <- sign(payload', sk_A);
+      cipher' <- aenc((payload', sig'), pk_V');
+      out(c, cipher').
+
+let HumanUser() =
+  (* The human decides to approve the login request *)
+  out(local_authenticator_input, true).
+
+(* Security Queries *)
+query secret N [reachability].
+query secret N [real_or_random].
+
+query p1: pkey, p2: pkey, n: nonce; 
+  inj-event(verifierSuccess(p1, p2, n)) ==> inj-event(authenticatorFinished(p1, p2, n)).
+
+query p1: pkey, p2: pkey, n: nonce; 
+  event(authenticatorFinished(p1, p2, n)) ==> event(verifierStarted(p1, p2, n)).
+
+(*
+ * This fails leading the authenticator to continuously prompt requests to the
+ * human user/authenticator. However, this is not an actual attack to the
+ * authentication, as those authentications won't be accepted by a verifier
+ * who's not listening anymore.
+ *
+ * A clena solution in practice to avoid it is to use monotonic counters,
+ * (e.g., 64-bit long).
+ *)
+query p1: pkey, p2: pkey, n: nonce; 
+  inj-event(authenticatorFinished(p1, p2, n)) ==> inj-event(verifierStarted(p1, p2, n)).
+
+process
+  sk_V1 <-R skey; pk_V1 <- pk(sk_V1);
+  sk_V2 <-R skey; pk_V2 <- pk(sk_V2);
+  sk_A1 <-R skey; pk_A1 <- pk(sk_A1);
+  sk_A2 <-R skey; pk_A2 <- pk(sk_A2);
+  sk_A3 <-R skey; pk_A3 <- pk(sk_A3);
+  insert identitiesV(sk_V1, pk_V1);
+  insert identitiesV(sk_V2, pk_V2);
+  insert identitiesA(sk_A1, pk_A1);
+  insert identitiesA(sk_A2, pk_A2);
+  insert identitiesA(sk_A3, pk_A3);
+  
+  (* Make public keys public - required for getting identities *)
+  out(c, (pk_V1, pk_V2, pk_A1, pk_A2));
+  
+  (*
+   * Simulate successful OOB setups with trust configurations.
+   * - we do not insert trusted_keys(pk_V2, pk_A2);
+   * - we do not involve A3
+   *)
+  insert trusted_keys(pk_V1, pk_A1);
+  insert trusted_keys(pk_V1, pk_A2);
+  insert trusted_keys(pk_V2, pk_A1);
+  
+  ( !Verifier() | !Authenticator() | !HumanUser() )

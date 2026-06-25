@@ -1,0 +1,85 @@
+(*
+ * Copyright (C) 2026 Archie Adams, Roberto Metere, University of York
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Secure Passwordless Authentication with Reveal-commtted Knowledge
+ *)
+set attacker = active.
+
+(* The untrusted network (Bluetooth/WiFi/ntfy) *)
+free c: channel.
+
+(* The user's eyes / Out-Of-Band secure channel *)
+free visual_channel_V: channel [private].
+free visual_channel_A: channel [private].
+
+type pkey.
+type skey.
+type nonce.
+type commitment.
+
+fun pk(skey): pkey.
+
+(* Hash function for the Short Authentication String *)
+fun sas(pkey, pkey, bitstring): bitstring.
+
+(* Explicit Commitment function for the Nonce *)
+fun commit(bitstring): commitment.
+
+(* Grinding attack *)
+fun forgeKeyA(pkey, pkey, bitstring): skey.
+fun forgeKeyV(pkey, pkey, bitstring): skey.
+fun    forgeB(pkey, pkey, bitstring): bitstring.
+equation forall v: pkey, a: pkey, b: bitstring;
+  fa <- pk(forgeKeyA(v, a, b));
+  fv <- pk(forgeKeyV(v, a, b));
+  fb <-       forgeB(v, a, b);
+  sas(v, fa, b) = sas(fv, a, fb).
+
+(* Events to track the state of the entities *)
+event verifierGenerated(pkey, pkey, bitstring).
+event authenticatorGenerated(pkey, pkey, bitstring).
+event userVerified(bitstring, bitstring).
+
+(* Verifier (Laptop) *)
+let Verifier() =
+  sk_V <-R skey;
+  pk_V <- pk(sk_V);
+  N <-R nonce;
+  
+  r <-R bitstring;
+  out(c, (pk_V, commit((N,r))));
+  in(c, pk_A': pkey) [precise];
+  out(c, (N,r));
+  sas_V <- sas(pk_V, pk_A', (N, r));
+  event verifierGenerated(pk_V, pk_A', sas_V);
+  out(visual_channel_V, sas_V).
+
+
+(* Authenticator (Phone) *)
+let Authenticator() =
+  sk_A <-R skey;
+  pk_A <- pk(sk_A);
+  
+  out(c, pk_A);
+  in(c, (pk_V': pkey, c': commitment));
+  in(c, (N': nonce, r': bitstring));
+  if commit((N', r')) = c' then
+    sas_A <- sas(pk_V', pk_A, (N', r'));
+    event authenticatorGenerated(pk_V', pk_A, sas_A);
+    out(visual_channel_A, sas_A).
+
+
+(* The Human User (Out-Of-Band Verifier)      *)
+let HumanUser() =
+  in(visual_channel_V, visual_sas_V: bitstring);
+  in(visual_channel_A, visual_sas_A: bitstring);
+  if visual_sas_V = visual_sas_A then
+    event userVerified(visual_sas_V, visual_sas_A).
+
+(* Security Query *)
+query v, a: pkey, sasV, sasA: bitstring; event(userVerified(sasV, sasA)) ==>
+  (event(verifierGenerated(v, a, sasV)) && event(authenticatorGenerated(v, a, sasA))).
+
+process
+  (!Verifier()) | (!Authenticator()) | (!HumanUser())
