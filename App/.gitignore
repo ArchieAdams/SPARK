@@ -87,7 +87,7 @@ gen-external-apklibs
 
 # Gradle files
 .gradle
-gradle/
+/gradle/
 
 # Signing files
 .signing/
