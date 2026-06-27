@@ -14,6 +14,8 @@ pkg_check_modules(BLUEZ REQUIRED bluez)
 pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
 
+enable_testing()
+
 set(COMMON_SOURCES
         config_manager.c
         communication/connection_manager.c
@@ -31,6 +33,7 @@ set(COMMON_SOURCES
         log_manager.c
         time_utils.c
         time_utils.h
+        communication/frame.c
 )
 
 add_executable(Authenticator
@@ -38,6 +41,14 @@ add_executable(Authenticator
         setup_server.c
         ${COMMON_SOURCES}
 )
+
+add_executable(frame_codec_tests
+        tests/frame_codec_tests.c
+        tests/unity.c
+        communication/frame.c
+)
+
+set_source_files_properties(communication/frame.c PROPERTIES LANGUAGE C)
 
 target_include_directories(Authenticator PRIVATE
         ${CMAKE_SOURCE_DIR}
@@ -48,6 +59,14 @@ target_include_directories(Authenticator PRIVATE
         ${OPENSSL_INCLUDE_DIR}
         PkgConfig::CJSON
 )
+
+target_include_directories(frame_codec_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/communication
+        ${CMAKE_SOURCE_DIR}/tests
+)
+
+add_test(NAME frame_codec_tests COMMAND frame_codec_tests)
 
 find_library(WEBSOCKETS_LIB websockets)
 target_link_libraries(Authenticator PRIVATE

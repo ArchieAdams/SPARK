@@ -56,3 +56,4 @@ dkms.conf
 
 /certs/
 /cmake-build-debug/
+.idea/
