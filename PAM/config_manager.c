@@ -19,12 +19,14 @@ typedef struct {
     char uuid[256];
     long port;
     char mac[18];
+    int channel;
 } ConfigData;
 
 static char cached_uuid[256] = {0};
 static int cached_port = -2;
 static char cached_username[256] = {0};
 static char cached_mac[18] = {0};
+static int cached_channel = -1;
 
 static int copy_value(char *dst, size_t dst_size, const char *src) {
     if (!dst || dst_size == 0 || !src) return -1;
@@ -55,6 +57,7 @@ static int load_config_from_file(FILE *f, ConfigData *cfg) {
     if (!f || !cfg) return -1;
     memset(cfg, 0, sizeof(*cfg));
     cfg->port = -1;
+    cfg->channel = -1;
 
     while (fgets(line, sizeof(line), f)) {
         char *eq = strchr(line, '=');
@@ -68,6 +71,7 @@ static int load_config_from_file(FILE *f, ConfigData *cfg) {
         else if (strcmp(key, "device_uuid") == 0) copy_value(cfg->uuid, sizeof(cfg->uuid), value);
         else if (strcmp(key, "device_port") == 0) cfg->port = strtol(value, NULL, 10);
         else if (strcmp(key, "device_mac") == 0) copy_value(cfg->mac, sizeof(cfg->mac), value);
+        else if (strcmp(key, "device_channel") == 0) cfg->channel = (int)strtol(value, NULL, 10);
     }
     return (cfg->uuid[0] != '\0') ? 0 : -1;
 }
@@ -82,6 +86,7 @@ int load_config(void) {
         copy_value(cached_uuid, sizeof(cached_uuid), cfg.uuid);
         cached_port = (int)cfg.port;
         copy_value(cached_mac, sizeof(cached_mac), cfg.mac);
+        cached_channel = cfg.channel;
         if (cfg.username[0]) copy_value(cached_username, sizeof(cached_username), cfg.username);
     }
     return rc;
@@ -104,6 +109,7 @@ int config_manager_write_full(const char *username, const char *uuid, int port, 
     fprintf(f, "device_port=%d\n", port > 0 ? port : cached_port);
     if (mac && mac[0]) fprintf(f, "device_mac=%s\n", mac);
     else if (cached_mac[0]) fprintf(f, "device_mac=%s\n", cached_mac);
+    if (cached_channel > 0) fprintf(f, "device_channel=%d\n", cached_channel);
 
     fclose(f);
     if (uuid) copy_value(cached_uuid, sizeof(cached_uuid), uuid);
@@ -134,6 +140,16 @@ int config_manager_get_device_mac(char *out, size_t out_size) {
     if (cached_mac[0] == '\0' && load_config() != 0) return -1;
     if (cached_mac[0] == '\0') return -1;
     return copy_value(out, out_size, cached_mac);
+}
+
+int config_manager_set_device_channel(int channel) {
+    cached_channel = channel;
+    return config_manager_write_full(NULL, NULL, -1, NULL);
+}
+
+int config_manager_get_device_channel(void) {
+    if (cached_channel <= 0 && load_config() != 0) return -1;
+    return cached_channel;
 }
 
 void cache_username(const char *username) {

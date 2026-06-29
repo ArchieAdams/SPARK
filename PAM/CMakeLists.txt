@@ -34,10 +34,16 @@ set(COMMON_SOURCES
         time_utils.c
         time_utils.h
         communication/frame.c
+        communication/messages.c
+        communication/sas.c
+        communication/channel.c
+        communication/pairing.c
+        communication/transport.c
 )
 
 add_executable(Authenticator
         main.c
+        pairing_server.c
         setup_server.c
         ${COMMON_SOURCES}
 )
@@ -67,6 +73,25 @@ target_include_directories(frame_codec_tests PRIVATE
 )
 
 add_test(NAME frame_codec_tests COMMAND frame_codec_tests)
+
+add_executable(comms_tests
+        tests/comms_tests.c
+        tests/mock_transport.c
+        communication/frame.c
+        communication/messages.c
+        communication/sas.c
+        communication/channel.c
+        communication/pairing.c
+)
+
+target_include_directories(comms_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/communication
+        ${OPENSSL_INCLUDE_DIR}
+)
+
+target_link_libraries(comms_tests PRIVATE ${OPENSSL_LIBRARIES} pthread)
+
+add_test(NAME comms_tests COMMAND comms_tests)
 
 find_library(WEBSOCKETS_LIB websockets)
 target_link_libraries(Authenticator PRIVATE

@@ -3,6 +3,7 @@ package uk.ac.york.emrys
 import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okio.ByteString.Companion.toByteString
 import java.lang.Thread.sleep
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -13,7 +14,6 @@ import kotlin.concurrent.thread
 
 class WebSocketService(
     private val connectionListener: ConnectionListener? = null,
-    private val messageListener: MessageListener? = null,
     private val setupConfig: SetupService.SetupConfig? = null
 ) : ConnectionService() {
     companion object {
@@ -78,7 +78,7 @@ class WebSocketService(
         val listener = CustomWebSocketListener(
             webSocketService = this,
             connectionListener = connectionListener,
-            messageListener = messageListener,
+            onBytes = { bytes -> onBytes?.invoke(bytes) },
             onSocketClosed = {
                 clearConnectionState()
             },
@@ -90,9 +90,8 @@ class WebSocketService(
         webSocket = client?.newWebSocket(request, listener)
     }
 
-    override fun sendMessage(msg: String) {
-        webSocket?.send(msg)
-    }
+    override fun sendBytes(data: ByteArray): Boolean =
+        webSocket?.send(data.toByteString()) ?: false
 
     override fun disconnect() {
         try {

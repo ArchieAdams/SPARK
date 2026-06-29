@@ -41,7 +41,7 @@ sdp_session_t *create_sdp_session(const char *mac) {
         session = sdp_connect(&local, &target, SDP_RETRY_IF_BUSY);
         if (session) break;
         printf("[SDP] Connect attempt %d failed (%s), retrying...\n", i + 1, strerror(errno));
-        sleep(2);
+        usleep(300000);   // 300ms; was 2s — cuts the worst-case fallback penalty
     }
 
     if (!session) {

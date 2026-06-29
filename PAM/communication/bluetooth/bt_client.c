@@ -17,7 +17,7 @@
 #include "time_utils.h"
 #include "../../config_manager.h"
 
-#define RETRY_DELAY_SEC   5
+#define RETRY_DELAY_SEC   1
 
 
 static int sock = -1;
@@ -205,14 +205,29 @@ bool bluetooth_connect(void) {
     printf("[BT_CLIENT] Target UUID: %s\n", target_uuid);
     printf("[BT_CLIENT] Target MAC: %s\n", target_mac);
 
+    ensure_adapter_up();   // once per connect, not per retry
+
+    bdaddr_t target_addr = {0};
+    if (str2ba(target_mac, &target_addr) != 0) {
+        printf("[BT_CLIENT] Invalid MAC %s\n", target_mac);
+        return false;
+    }
+
+    // Fast path: connect straight to the cached RFCOMM channel, skipping the SDP
+    int cached = config_manager_get_device_channel();
+    if (cached > 0 && !atomic_load(&stop_requested)) {
+        if (connect_to_socket_by_addr(&target_addr, cached, &sock)) {
+            printf("[BT_CLIENT] Connected via cached channel %d\n", cached);
+            return true;
+        }
+        printf("[BT_CLIENT] Cached channel %d stale, resolving via SDP...\n", cached);
+    }
+
+    // Slow path: SDP-resolve the channel, then cache it for next time.
     while (!atomic_load(&stop_requested)) {
-        ensure_adapter_up();
-
-        bdaddr_t target_addr = {0};
         int channel = -1;
-
         if (!resolve_channel_for_known_mac_and_uuid(target_uuid, target_mac, &target_addr, &channel)) {
-            printf("[BT_CLIENT] MAC/UUID resolution failed for %s, retrying in %ds...\n", target_mac, RETRY_DELAY_SEC);
+            printf("[BT_CLIENT] SDP resolution failed for %s, retrying in %ds...\n", target_mac, RETRY_DELAY_SEC);
             wait_with_stop_check(100);
             continue;
         }
@@ -221,8 +236,8 @@ bool bluetooth_connect(void) {
         }
 
         if (connect_to_socket_by_addr(&target_addr, channel, &sock)) {
-            printf("[BT_CLIENT] Connected!\n");
-            /* changed: removed unsolicited initial write */
+            config_manager_set_device_channel(channel);
+            printf("[BT_CLIENT] Connected (SDP channel %d, cached)\n", channel);
             return true;
         }
 
@@ -273,4 +288,59 @@ bool bluetooth_send(const char *msg) {
 bool bluetooth_receive(char *buf, size_t buf_size) {
     if (sock < 0 || !buf || buf_size == 0) return false;
     return read_message(sock, buf, buf_size);
+}
+
+static bool write_message_bytes(int s, const uint8_t *data, size_t len) {
+    uint32_t len_net = htonl((uint32_t)len);
+    char *buf = malloc(4 + len);
+    if (!buf) return false;
+    memcpy(buf, &len_net, 4);
+    memcpy(buf + 4, data, len);
+    ssize_t sent = send(s, buf, 4 + len, MSG_NOSIGNAL);
+    free(buf);
+    if (sent < 0) {
+        if (s == sock && (errno == ENOTCONN || errno == EPIPE || errno == ECONNRESET || errno == EBADF)) {
+            close(sock); sock = -1;
+        }
+        return false;
+    }
+    return true;
+}
+
+// Returns payload length, 0 on no-data (timeout), -1 on error/closed.
+static int read_message_bytes(int s, uint8_t *buf, size_t buf_size) {
+    fd_set readfds;
+    struct timeval tv = {1, 0};
+    FD_ZERO(&readfds);
+    FD_SET(s, &readfds);
+
+    int ready = select(s + 1, &readfds, NULL, NULL, &tv);
+    if (ready < 0) return -1;
+    if (ready == 0) return 0;
+
+    uint32_t msg_len_net = 0;
+    if (recv(s, &msg_len_net, 4, MSG_WAITALL) != 4) {
+        if (s == sock) { close(sock); sock = -1; }
+        return -1;
+    }
+    uint32_t msg_len = ntohl(msg_len_net);
+    if (msg_len == 0 || msg_len > buf_size) {
+        if (s == sock) { close(sock); sock = -1; }
+        return -1;
+    }
+    if (recv(s, buf, msg_len, MSG_WAITALL) != (ssize_t)msg_len) {
+        if (s == sock) { close(sock); sock = -1; }
+        return -1;
+    }
+    return (int)msg_len;
+}
+
+bool bluetooth_send_bytes(const uint8_t *data, size_t len) {
+    if (sock < 0 || !data) return false;
+    return write_message_bytes(sock, data, len);
+}
+
+int bluetooth_receive_bytes(uint8_t *buf, size_t buf_size) {
+    if (sock < 0 || !buf || buf_size == 0) return -1;
+    return read_message_bytes(sock, buf, buf_size);
 }

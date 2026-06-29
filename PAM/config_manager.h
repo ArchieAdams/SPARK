@@ -15,6 +15,8 @@ int config_manager_write_full(const char *username, const char *uuid, int port, 
 int config_manager_get_device_uuid(char *out, size_t out_size);
 int config_manager_get_device_port(void);
 int config_manager_get_device_mac(char *out, size_t out_size);
+int config_manager_set_device_channel(int channel);
+int config_manager_get_device_channel(void);
 
 void cache_username(const char *username);
 void cache_setup(const char *username, int port);

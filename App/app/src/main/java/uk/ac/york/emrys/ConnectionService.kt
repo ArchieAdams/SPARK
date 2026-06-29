@@ -1,17 +1,14 @@
 package uk.ac.york.emrys
 
-abstract class ConnectionService {
+abstract class ConnectionService : ByteTransport {
     private var isConnected: Boolean = false
-
-    abstract fun sendMessage(msg: String)
-    abstract fun disconnect()
+    override var onBytes: ((ByteArray) -> Unit)? = null
+    abstract override fun sendBytes(data: ByteArray): Boolean
     abstract fun connect()
+    abstract fun disconnect()
     fun setConnected(connected: Boolean) {
         isConnected = connected
     }
     open fun isConnected()= isConnected
-
-    open fun shutdown() {
-        disconnect()
-    }
+    open fun shutdown() = disconnect()
 }

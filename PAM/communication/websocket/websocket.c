@@ -126,8 +126,8 @@ int ws_init(int port) {
     info.options |= LWS_SERVER_OPTION_ALLOW_LISTEN_SHARE | LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
     // Corrected paths to match your project root
-    info.ssl_cert_filepath = "/home/archiea/AndroidStudioProjects/Autenticator/PAM/certs/server.crt";
-    info.ssl_private_key_filepath = "/home/archiea/AndroidStudioProjects/Autenticator/PAM/certs/server.key";
+    info.ssl_cert_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.crt";
+    info.ssl_private_key_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.key";
 
     context = lws_create_context(&info);
     return context ? 0 : -1;
@@ -174,6 +174,36 @@ int ws_receive(char *buf, size_t buf_size) {
         usleep(10000);
         elapsed += 10;
     }
+    return -1;
+}
+
+int ws_send_bytes(const uint8_t *data, size_t len) {
+    pthread_mutex_lock(&connection_lock);
+    struct lws *client = connected_client;
+    pthread_mutex_unlock(&connection_lock);
+
+    if (!client) return -1;
+    unsigned char *buf = malloc(LWS_PRE + len);
+    if (!buf) return -1;
+    memcpy(&buf[LWS_PRE], data, len);
+    int res = lws_write(client, &buf[LWS_PRE], len, LWS_WRITE_BINARY);
+    free(buf);
+    return res;
+}
+
+int ws_receive_bytes(uint8_t *buf, size_t buf_size) {
+    if (!buf || buf_size == 0) return -1;
+    pthread_mutex_lock(&msg_queue.lock);
+    if (msg_queue.count > 0) {
+        message_t *msg = &msg_queue.messages[msg_queue.head];
+        size_t copy_len = (msg->len <= buf_size) ? msg->len : buf_size;
+        memcpy(buf, msg->data, copy_len);
+        msg_queue.head = (msg_queue.head + 1) % MAX_MESSAGES;
+        msg_queue.count--;
+        pthread_mutex_unlock(&msg_queue.lock);
+        return (int)copy_len;
+    }
+    pthread_mutex_unlock(&msg_queue.lock);
     return -1;
 }
 

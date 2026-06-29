@@ -69,8 +69,7 @@ static void start_websocket_service() {
 static void *ws_service_loop() {
     printf("WebSocket service loop started\n");
     while (ws_running) {
-        ws_poll(50); // Poll every 50ms
-        sleep_ms(500);
+        ws_poll(50); // lws_service blocks up to 50ms
     }
     printf("WebSocket service loop ended\n");
     return NULL;
@@ -177,6 +176,16 @@ bool websocket_receive(char *buf, size_t buf_size) {
     }
     fflush(stdout);
     return true;
+}
+
+bool websocket_send_bytes(const uint8_t *data, size_t len) {
+    if (!ws_running) return false;
+    return ws_send_bytes(data, len) >= 0;
+}
+
+int websocket_receive_bytes(uint8_t *buf, size_t buf_size) {
+    if (!ws_running) return -1;
+    return ws_receive_bytes(buf, buf_size);
 }
 
 bool websocket_service_is_running() {

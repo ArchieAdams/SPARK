@@ -123,6 +123,20 @@ bool connection_manager_receive(char *buf, size_t buf_size) {
     return false;
 }
 
+bool connection_manager_send_bytes(const uint8_t *data, size_t len) {
+    ConnectionType conn = connection_manager_get_active();
+    if (conn == CONN_BLUETOOTH) return bluetooth_send_bytes(data, len);
+    if (conn == CONN_WEBSOCKET) return websocket_send_bytes(data, len);
+    return false;
+}
+
+int connection_manager_receive_bytes(uint8_t *buf, size_t cap) {
+    ConnectionType conn = connection_manager_get_active();
+    if (conn == CONN_BLUETOOTH) return bluetooth_receive_bytes(buf, cap);
+    if (conn == CONN_WEBSOCKET) return websocket_receive_bytes(buf, cap);
+    return -1;
+}
+
 void connection_manager_disconnect() {
     pthread_mutex_lock(&connection_lock);
     ConnectionType conn = active_connection;

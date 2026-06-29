@@ -10,9 +10,10 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import org.json.JSONObject
 import java.nio.ByteBuffer
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.spec.X509EncodedKeySpec
 import java.util.Locale
 import java.util.UUID
 import kotlin.concurrent.thread
@@ -37,9 +38,17 @@ class SetupService(
     }
 
     private val secureKeyStore = SecureKeyStore(context)
-    private var setupClient: SetupClient? = null
     private var devicePort: Int = 0
-    private var pendingPcCert: String? = null
+    private var ws: WebSocketService? = null
+    private var channel: Channel? = null
+    private var alias = ""
+    private var deviceId = ""
+    private var pkADer: ByteArray? = null
+    @Volatile private var pkVDer: ByteArray? = null
+    @Volatile private var commitC: ByteArray? = null
+    @Volatile private var userAccepted = false
+    @Volatile private var peerAccepted: Boolean? = null
+    private val lock = Any()
 
     data class SetupConfig(
         val deviceId: String,
@@ -73,15 +82,14 @@ class SetupService(
 
         thread {
             try {
-                val deviceId = UUID.randomUUID().toString()
+                deviceId = UUID.randomUUID().toString()
                 devicePort = (10000..60000).random()
-                val alias = "auth_$deviceId"
+                alias = "auth_$deviceId"
 
                 KeyManager.deleteAlias(alias)
-                val publicKey =
-                    KeyManager.publicKeyToPEM(KeyManager.generateOrGetKeystorePublicKey(alias))
+                pkADer = KeyManager.generateOrGetKeystorePublicKey(alias).encoded  // DER (X.509 SPKI)
 
-                initiatePairing(deviceId, publicKey, alias)
+                startPairing()
             } catch (e: Exception) {
                 Log.e(TAG, "Setup failed", e)
                 onSetupError?.invoke("Setup failed: ${e.message}")
@@ -89,83 +97,104 @@ class SetupService(
         }
     }
 
-    private fun initiatePairing(deviceId: String, publicKey: String, alias: String) {
-        val webSocketService = WebSocketService(
+    private fun startPairing() {
+        ws = WebSocketService(
             connectionListener = object : ConnectionListener {
                 override fun onConnected(connectionService: ConnectionService) {
-                    val json = JSONObject().apply {
-                        put("device_id", deviceId)
-                        put("public_key", publicKey)
-                        put("port", devicePort)
-                    }
-                    connectionService.sendMessage(json.toString())
-                    setupClient?.apply {
-                        setPrivateKeyAlias(alias)
-                        setDeviceId(deviceId)
-                    }
+                    channel?.send(
+                        MsgType.MSG_SETUP_REQ,
+                        Messages.setupReq(UUID.fromString(deviceId), pkADer!!, devicePort)
+                    )
                 }
-
                 override fun onDisconnected(connectionService: ConnectionService) {}
-            },
-            messageListener = object : MessageListener {
-                override fun onMessage(msg: String) {
-                    if (msg != "ACK") handleResponse(msg, deviceId, alias, publicKey)
-                }
-
-                override fun onError(error: String) {
-                    onSetupError?.invoke(error)
-                }
             }
         )
-
-        setupClient = SetupClient(webSocketService, null, null)
-        webSocketService.connect()
+        channel = Channel(ws!!) { m -> handleMessage(m) }
+        ws!!.connect()
     }
 
-    private fun handleResponse(text: String, deviceId: String, alias: String, publicKey: String) {
+    private fun handleMessage(m: Message) {
         try {
-            val json = JSONObject(text)
-            when (json.optString("status")) {
-                "pc_public_key" -> {
-                    pendingPcCert = json.optString("pc_public_key")
+            when (m.type) {
+                MsgType.MSG_COMMIT -> {
+                    val c = Messages.parseCommit(m.payload)
+                    pkVDer = c.pkV
+                    commitC = c.c
                 }
 
-                "nonce_challenge" -> {
-                    val serverNonce = json.optString("server_nonce")
-                    val pcPub = pendingPcCert ?: return
-                    val sas = computeSas(serverNonce, pcPub, publicKey)
+                MsgType.MSG_REVEAL -> {
+                    val rv = Messages.parseReveal(m.payload)
+                    val expected = sha256(rv.n + rv.r)
+                    if (!expected.contentEquals(commitC)) {
+                        abort(AbortReason.COMMITMENT_MISMATCH, "Commitment mismatch")
+                        return
+                    }
+                    val sas = Messages.sas(rv.n, pkVDer!!, pkADer!!)
                     onSasGenerated?.invoke(sas)
-
-                    setupClient?.getWebSocketService()
-                        ?.sendMessage(JSONObject().put("type", "nonce_response").toString())
-                    startBtBinding(deviceId)
                 }
 
-                "ok" -> {
-                    val pcPub = pendingPcCert ?: return
-                    val config = SetupConfig(deviceId, alias, publicKey, pcPub, devicePort)
-                    saveConfig(config)
-                    setupClient?.disconnect()
-                    onSetupComplete?.invoke(config)
+                MsgType.MSG_SAS_CONFIRM -> {
+                    peerAccepted = Messages.parseSasConfirm(m.payload)
+                    maybeComplete()
                 }
 
-                else -> onSetupError?.invoke(json.optString("message", "Unknown error"))
+                MsgType.MSG_ABORT -> {
+                    onSetupError?.invoke("Pairing aborted: ${Messages.parseAbort(m.payload)}")
+                    cleanup()
+                }
+
+                else -> Log.d(TAG, "Ignoring ${m.type} during pairing")
             }
         } catch (e: Exception) {
-            onSetupError?.invoke("Protocol error")
+            Log.e(TAG, "Pairing message error", e)
+            abort(AbortReason.PROTOCOL_ERROR, "Protocol error")
         }
     }
 
-    private fun computeSas(nonce: String, pcKey: String, deviceKey: String): String {
-        val md = MessageDigest.getInstance("SHA-256")
-        listOf(nonce, pcKey, deviceKey).forEach {
-            val bytes = it.toByteArray()
-            md.update(ByteBuffer.allocate(4).putInt(bytes.size).array())
-            md.update(bytes)
+    fun confirmSas(accept: Boolean) {
+        userAccepted = accept
+        channel?.send(MsgType.MSG_SAS_CONFIRM, Messages.sasConfirm(accept))
+        if (!accept) {
+            onSetupError?.invoke("Pairing rejected by user")
+            cleanup()
+            return
         }
-        val hash = md.digest()
-        val code = ByteBuffer.wrap(hash).int and 0x7FFFFFFF
-        return String.format(Locale.US, "%06d", code % 1_000_000)
+        maybeComplete()
+    }
+
+    private fun maybeComplete() = synchronized(lock) {
+        when {
+            peerAccepted == false -> {
+                onSetupError?.invoke("Peer rejected pairing")
+                cleanup()
+            }
+            userAccepted && peerAccepted == true -> {
+                val config = SetupConfig(
+                    deviceId = deviceId,
+                    privateKeyAlias = alias,
+                    publicKey = derToPem(pkADer!!),
+                    pcPublicKey = derToPem(pkVDer!!),
+                    devicePort = devicePort
+                )
+                saveConfig(config)
+                startBtBinding(deviceId)
+                onSetupComplete?.invoke(config)
+                cleanup()
+            }
+        }
+    }
+
+    private fun abort(reason: AbortReason, msg: String) {
+        channel?.send(MsgType.MSG_ABORT, Messages.abort(reason))
+        onSetupError?.invoke(msg)
+        cleanup()
+    }
+
+    private fun sha256(b: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(b)
+
+    private fun derToPem(der: ByteArray): String {
+        val pub = KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(der))
+        return KeyManager.publicKeyToPEM(pub)
     }
 
     private fun saveConfig(config: SetupConfig) {
@@ -186,10 +215,14 @@ class SetupService(
         secureKeyStore.clear()
     }
 
-    fun stop() {
-        setupClient?.disconnect()
-        setupClient = null
+    private fun cleanup() {
+        channel?.close()
+        channel = null
+        ws?.disconnect()
+        ws = null
     }
+
+    fun stop() = cleanup()
 
     private fun startBtBinding(deviceId: String) {
         thread(isDaemon = true) {

@@ -6,11 +6,12 @@ import java.io.EOFException
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString
 
 class CustomWebSocketListener(
     private val webSocketService: WebSocketService,
     private val connectionListener: ConnectionListener? = null,
-    private val messageListener: MessageListener? = null,
+    private val onBytes: ((ByteArray) -> Unit)? = null,
     private val onSocketOpen: (() -> Unit)? = null,
     private val onSocketClosed: (() -> Unit)? = null,
     private val onSocketFailure: ((Throwable) -> Unit)? = null
@@ -27,9 +28,8 @@ class CustomWebSocketListener(
         connectionListener?.onConnected(webSocketService)
     }
 
-    override fun onMessage(webSocket: WebSocket, text: String) {
-        Log.d(TAG, "onMessage: Received: $text")
-        messageListener?.onMessage(text)
+    override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+        onBytes?.invoke(bytes.toByteArray())
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
@@ -55,7 +55,6 @@ class CustomWebSocketListener(
 
         Log.e(TAG, "onFailure called!", t)
         webSocketService.setConnected(false)
-        messageListener?.onError("${t.javaClass.simpleName}: ${t.message}")
         connectionListener?.onDisconnected(webSocketService)
         onSocketFailure?.invoke(t)
     }

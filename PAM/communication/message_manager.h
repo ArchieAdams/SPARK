@@ -26,6 +26,13 @@ int process_signed_and_encrypted_response(
     size_t *output_len
 );
 
+int process_signed_and_encrypted_response_bytes(
+    const unsigned char *input,
+    size_t input_len,
+    unsigned char *output_message,
+    size_t *output_len
+);
+
 int validate_challenge_response(
     const unsigned char *expected_response,
     size_t expected_response_len,

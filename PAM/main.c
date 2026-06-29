@@ -2,11 +2,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 #include <log_manager.h>
 #include <sys/syslog.h>
 
 #include "authenticator.h"
-#include "setup_server.h"
+#include "pairing_server.h"
 #include "config_manager.h"
 
 static const char* TAG = "main";
@@ -20,36 +21,15 @@ int main(int argc, char *argv[]) {
         }
 
         const char *setup_username = argv[2];
-        custom_log(LOG_INFO, TAG, "Starting setup server for user '%s' (WebSocket: 8080, UDP: 5555)\n", setup_username);
-
-        if (setup_server_start_for_user(setup_username) != 0) {
-            custom_log(LOG_ERR, TAG, "Failed to start setup server\n");
-            return 1;
-        }
-
-        custom_log(LOG_INFO, TAG, "Setup server running. Waiting for device pairing...\n");
-        custom_log(LOG_INFO, TAG, "Device will send: device_id, public_key, and device listening port\n");
+        custom_log(LOG_INFO, TAG, "Starting A1 pairing for user '%s' (WebSocket: 8080, UDP: 5555)\n", setup_username);
         custom_log(LOG_INFO, TAG, "Open the mobile emrys and start pairing now.\n");
 
-        int waited = 0;
-        while (!setup_server_is_done()) {
-            sleep(1);
-            waited++;
-            if (waited % 10 == 0) {
-                custom_log(LOG_INFO, TAG, "Still waiting for pairing... (%ds)\n", waited);
-            }
-            if (waited >= 300) {
-                custom_log(LOG_ERR, TAG, "Setup timed out waiting for completion.\n");
-                return 1;
-            }
+        if (pairing_server_run(setup_username) != 0) {
+            custom_log(LOG_ERR, TAG, "Pairing failed.\n");
+            return 1;
         }
-
-        if (setup_server_result() == 0) {
-            custom_log(LOG_INFO, TAG, "Setup completed successfully.\n");
-        } else {
-            custom_log(LOG_ERR, TAG, "Setup failed.\n");
-        }
-        return setup_server_result() == 0 ? 0 : 1;
+        custom_log(LOG_INFO, TAG, "Pairing completed successfully.\n");
+        return 0;
     }
 
     const char *username = (argc > 1) ? argv[1] : "archiea";

@@ -174,26 +174,20 @@ cleanup:
     return result;
 }
 
-int process_signed_and_encrypted_response(
-    const char *hex_input,
+int process_signed_and_encrypted_response_bytes(
+    const unsigned char *input,
+    size_t input_len,
     unsigned char *output_message,
     size_t *output_len
 ) {
-    if (!hex_input || !output_message || !output_len || *output_len == 0) {
+    if (!input || !output_message || !output_len || *output_len == 0) {
         custom_log(LOG_ERR, TAG, "Invalid parameters for response processing");
         return 0;
     }
 
     EVP_PKEY *device_public_key = NULL;
     EVP_PKEY *pc_key = NULL;
-    unsigned char *input = NULL;
-    size_t input_len = 0;
     int result = 0;
-
-    if (!decode_hex_string(hex_input, &input, &input_len)) {
-        goto cleanup;
-    }
-    custom_log(LOG_INFO, TAG, "Decoded response hex payload (%zu bytes)", input_len);
 
     if (!load_device_public_key(&device_public_key)) {
         goto cleanup;
@@ -213,6 +207,18 @@ int process_signed_and_encrypted_response(
 cleanup:
     key_manager_free_key(pc_key);
     key_manager_free_key(device_public_key);
+    return result;
+}
+
+int process_signed_and_encrypted_response(
+    const char *hex_input,
+    unsigned char *output_message,
+    size_t *output_len
+) {
+    unsigned char *input = NULL;
+    size_t input_len = 0;
+    if (!decode_hex_string(hex_input, &input, &input_len)) return 0;
+    int result = process_signed_and_encrypted_response_bytes(input, input_len, output_message, output_len);
     free(input);
     return result;
 }

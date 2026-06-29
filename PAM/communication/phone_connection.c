@@ -3,6 +3,7 @@
 #include <log_manager.h>
 
 #include "connection_manager.h"
+#include "channel.h"
 #include "message_manager.h"
 #include <errno.h>
 #include <stdio.h>
@@ -54,13 +55,6 @@ static void phone_disconnect() {
 }
 
 
-static int phone_send(const char *msg) {
-    if (connection_manager_send(msg)) {
-        return 1;
-    }
-    return 0;
-}
-
 static int phone_send_auth_challenge() {
     custom_log(LOG_INFO,TAG,"[PHONE] Generating authentication challenge...\n");
 
@@ -85,21 +79,7 @@ static int phone_send_auth_challenge() {
 
     custom_log(LOG_INFO,TAG,"[PHONE] Challenge generated (%zu bytes), sending...\n", challenge_len);
 
-    // Convert binary message to hex string for transmission
-    char hex_message[4096];
-    if (challenge_len * 2 >= sizeof(hex_message)) {
-        custom_log(LOG_ERR,TAG," Challenge message too large for hex conversion\n");
-        clear_pending_challenge();
-        return 0;
-    }
-
-    for (size_t i = 0; i < challenge_len; i++) {
-        sprintf(&hex_message[i * 2], "%02x", challenge_message[i]);
-    }
-    hex_message[challenge_len * 2] = '\0';
-
-    // Send through active connection
-    if (!phone_send(hex_message)) {
+    if (!channel_send(MSG_CHALLENGE, challenge_message, (uint32_t)challenge_len)) {
         custom_log(LOG_ERR,TAG," Failed to send challenge message\n");
         clear_pending_challenge();
         return 0;
@@ -122,32 +102,17 @@ static int phone_receive_verified_response(unsigned char *response, size_t *resp
     }
 
     time_t deadline = time(NULL) + AUTH_RESPONSE_TIMEOUT_SEC;
+    uint8_t pbuf[8192];
+    Message m;
     while (time(NULL) < deadline) {
-        char encoded_response[8192];
-        memset(encoded_response, 0, sizeof(encoded_response));
+        int rc = channel_recv(&m, pbuf, sizeof(pbuf), AUTH_RESPONSE_POLL_MS);
+        if (rc != 0) continue;
+        if (m.type == MSG_PING) continue;
+        if (m.type != MSG_RESPONSE) continue;
 
-        if (!connection_manager_receive(encoded_response, sizeof(encoded_response))) {
-            // Treat intermittent receive failures as transient until timeout.
-            sleep_ms(AUTH_RESPONSE_POLL_MS);
-            continue;
-        }
+        custom_log(LOG_INFO,TAG,"[PHONE] Received device response (%u bytes), verifying...\n", m.payload_len);
 
-        if (encoded_response[0] == '\0') {
-            // Timeout/no data from transport poll; keep waiting.
-            sleep_ms(AUTH_RESPONSE_POLL_MS);
-            continue;
-        }
-
-        custom_log(LOG_INFO,TAG,"[PHONE] Received encoded device response, verifying...\n");
-        custom_log(LOG_INFO,TAG,"[PHONE] Encoded response (hex): %.100s%s\n",
-               encoded_response, strlen(encoded_response) > 100 ? "..." : "");
-
-        if(strcmp(encoded_response,"PING") == 0) {
-            continue;
-        }
-
-
-        if (!process_signed_and_encrypted_response(encoded_response, response, response_len)) {
+        if (!process_signed_and_encrypted_response_bytes(m.payload, m.payload_len, response, response_len)) {
             custom_log(LOG_ERR,TAG," Device response failed verification\n");
             return 0;
         }

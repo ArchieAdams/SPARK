@@ -40,6 +40,9 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
     private lateinit var pairingSasText: TextView
     private lateinit var pairingDetailText: TextView
     private lateinit var retryPairingButton: Button
+    private lateinit var sasButtonRow: View
+    private lateinit var confirmSasButton: Button
+    private lateinit var rejectSasButton: Button
 
     // Connected screen (Index 2)
     private lateinit var deviceIdText: TextView
@@ -118,6 +121,9 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
         pairingSasText = findViewById(R.id.pairingSasText)
         pairingDetailText = findViewById(R.id.pairingDetailText)
         retryPairingButton = findViewById(R.id.retryPairingButton)
+        sasButtonRow = findViewById(R.id.sasButtonRow)
+        confirmSasButton = findViewById(R.id.confirmSasButton)
+        rejectSasButton = findViewById(R.id.rejectSasButton)
 
         // Connected screen
         deviceIdText = findViewById(R.id.deviceIdText)
@@ -178,6 +184,18 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
         retryPairingButton.setOnClickListener {
             if (setupService == null) checkInitialState()
             retryPairing()
+        }
+
+        confirmSasButton.setOnClickListener {
+            sasButtonRow.visibility = View.GONE
+            pairingStatusText.text = "Finishing pairing..."
+            pairingProgressBar.visibility = View.VISIBLE
+            setupService?.confirmSas(true)
+        }
+
+        rejectSasButton.setOnClickListener {
+            sasButtonRow.visibility = View.GONE
+            setupService?.confirmSas(false)
         }
 
         unpairButton.setOnClickListener {
@@ -264,6 +282,7 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
             pairingSasText.visibility = View.GONE
             pairingDetailText.visibility = View.GONE
             retryPairingButton.visibility = View.GONE
+            sasButtonRow.visibility = View.GONE
         }
     }
 
@@ -276,6 +295,7 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
             pairingDetailText.text = error
             pairingDetailText.visibility = View.VISIBLE
             retryPairingButton.visibility = View.VISIBLE
+            sasButtonRow.visibility = View.GONE
         }
     }
 
@@ -301,6 +321,7 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
             pairingSasText.visibility = View.VISIBLE
             pairingDetailText.text = "Verify the SAS code matches the one shown on your PC."
             pairingDetailText.visibility = View.VISIBLE
+            sasButtonRow.visibility = View.VISIBLE
         }
     }
 

@@ -4,11 +4,12 @@ import android.bluetooth.BluetoothAdapter
 import android.util.Log
 import java.util.UUID
 
-class ConnectionManager(private val connectionListener: ConnectionListener, private val setupConfig: SetupService.SetupConfig? = null) : ConnectionListener {
+class ConnectionManager(private val connectionListener: ConnectionListener, private val setupConfig: SetupService.SetupConfig? = null) : ConnectionListener, ByteTransport {
     private var currentConnection: ConnectionService? = null
     private val connections = mutableListOf<ConnectionService>()
 
-    fun startConnection(adapter: BluetoothAdapter, messageListener: MessageListener) {
+    override var onBytes: ((ByteArray) -> Unit)? = null
+    fun startConnection(adapter: BluetoothAdapter) {
         val serviceUUID = setupConfig?.deviceId?.let { deviceId ->
             try {
                 Log.d("ConnectionManager", "Parsing Bluetooth UUID from deviceId: $deviceId")
@@ -23,18 +24,16 @@ class ConnectionManager(private val connectionListener: ConnectionListener, priv
         }
 
         if (serviceUUID != null) {
-            val bluetoothService = BluetoothService(adapter, this, messageListener, serviceUUID)
-            bluetoothService.let {
-                connections.add(it)
-                it.connect()
-            }
+            val bluetoothService = BluetoothService(adapter, this, serviceUUID)
+            bluetoothService.onBytes = { bytes -> onBytes?.invoke(bytes) }
+            connections.add(bluetoothService);
+            bluetoothService.connect()
         }
 
-        val webSocketService = WebSocketService(this, messageListener, setupConfig)
-        webSocketService.let {
-            connections.add(it)
-            it.connect()
-        }
+        val webSocketService = WebSocketService(this, setupConfig)
+        webSocketService.onBytes = { bytes -> onBytes?.invoke(bytes) }
+        connections.add(webSocketService);
+        webSocketService.connect()
     }
 
     override fun onConnected(connectionService: ConnectionService) {
@@ -65,10 +64,9 @@ class ConnectionManager(private val connectionListener: ConnectionListener, priv
         }
     }
 
-    fun sendMessage(message: String) {
-        currentConnection?.sendMessage(message) ?: run {
-            Log.w("ConnectionManager", "Cannot send message - no active connection")
-        }
+    override fun sendBytes(payload: ByteArray): Boolean =
+    currentConnection?.sendBytes(payload) ?: run {
+        Log.w("ConnectionManager", "No active connection"); false
     }
 
     fun destroy() {

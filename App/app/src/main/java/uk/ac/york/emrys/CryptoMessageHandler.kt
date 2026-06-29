@@ -1,7 +1,6 @@
 package uk.ac.york.emrys
 
 import android.content.Context
-import android.util.Base64
 import android.util.Log
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -68,9 +67,9 @@ class CryptoMessageHandler(private val context: Context) {
         return cipher.doFinal(data)
     }
 
-    fun processAuthenticationChallenge(challengeMessage: String): String? {
+    fun processAuthenticationChallenge(challenge: ByteArray): ByteArray? {
         return try {
-            val raw = decode(challengeMessage) ?: return null
+            val raw = challenge
             if (raw.size < 4) return null
 
             val sigLen = ((raw[0].toInt() and 0xFF) shl 8) or (raw[1].toInt() and 0xFF)
@@ -119,22 +118,10 @@ class CryptoMessageHandler(private val context: Context) {
             System.arraycopy(finalSignature, 0, output, 4, finalSignature.size)
             System.arraycopy(finalCiphertext, 0, output, 4 + finalSignature.size, finalCiphertext.size)
 
-            toHex(output)
+            output
         } catch (e: Exception) {
             Log.e(TAG, "Process challenge failed", e)
             null
         }
     }
-
-    private fun decode(raw: String): ByteArray? {
-        return try {
-            if (raw.matches(Regex("^[0-9a-fA-F]+$"))) {
-                ByteArray(raw.length / 2) { raw.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
-            } else {
-                Base64.decode(raw, Base64.DEFAULT)
-            }
-        } catch (e: Exception) { null }
-    }
-
-    private fun toHex(data: ByteArray) = data.joinToString("") { "%02x".format(it) }
 }

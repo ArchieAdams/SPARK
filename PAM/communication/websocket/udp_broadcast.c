@@ -60,11 +60,12 @@ static int send_udp_broadcast() {
     return 0;
 }
 
-// Start a thread to send UDP broadcasts every 5 seconds for advertising
+// Broadcast presence ~1/sec so the phone discovers the server fast Checks stop every 100ms.
 static void *advertising_thread() {
     while (!atomic_load(&advertising_stop)) {
         send_udp_broadcast();
-        sleep(5);
+        for (int i = 0; i < 10 && !atomic_load(&advertising_stop); i++)
+            usleep(100000);
     }
     atomic_store(&advertising_running, false);
     return NULL;

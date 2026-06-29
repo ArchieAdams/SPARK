@@ -124,6 +124,28 @@
                 android:textSize="12sp"
                 android:visibility="gone" />
 
+            <LinearLayout
+                android:id="@+id/sasButtonRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/rejectSasButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="12dp"
+                    android:text="Don't match" />
+
+                <Button
+                    android:id="@+id/confirmSasButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="They match" />
+            </LinearLayout>
+
             <Button
                 android:id="@+id/retryPairingButton"
                 android:layout_width="wrap_content"

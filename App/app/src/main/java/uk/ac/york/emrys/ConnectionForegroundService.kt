@@ -15,7 +15,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
-class ConnectionForegroundService : Service(), ConnectionListener, MessageListener {
+class ConnectionForegroundService : Service(), ConnectionListener {
 
     companion object {
         private const val TAG = "ConnectionService"
@@ -32,6 +32,7 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
     }
 
     private var connectionManager: ConnectionManager? = null
+    private var channel: Channel? = null
     private var setupConfig: SetupService.SetupConfig? = null
     private var isConnected = false
     private var currentConnectionType: String = "Initializing"
@@ -62,7 +63,7 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
-        
+
         val filter = IntentFilter().apply {
             addAction(LoginApprovalActivity.ACTION_APPROVED)
             addAction(LoginApprovalActivity.ACTION_DENIED)
@@ -98,9 +99,9 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
                     return START_NOT_STICKY
                 }
                 setupConfig = stored
-                
+
                 startForeground(NOTIFICATION_ID, createNotification("Connecting", "Initializing connection..."))
-                
+
                 // Re-initialize connections if config changes or after new pairing
                 stopConnections()
                 startConnections()
@@ -117,31 +118,27 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
 
     private fun startConnections() {
         val adapter = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        connectionManager = ConnectionManager(this, setupConfig).apply {
-            startConnection(adapter, this@ConnectionForegroundService)
-        }
+        connectionManager = ConnectionManager(this, setupConfig).apply { startConnection(adapter) }
+        channel = Channel(connectionManager!!) { m -> handleMessage(m) }
     }
 
     private fun stopConnections() {
+        channel?.close()
+        channel = null
         connectionManager?.destroy()
         connectionManager = null
     }
 
-    override fun onMessage(msg: String) {
-        if (msg in listOf("PING", "PONG", "ACK")) return
-
-        if (setupConfig != null && msg.length > 100 && msg.matches(Regex("[0-9a-fA-F]+"))) {
-            storePendingAuth(msg, pendingDeviceLabel ?: "Linked PC")
-            showLoginApprovalScreen(msg)
-            uiMessageListener?.onMessage("⏳ Login request received")
-            return
+    private fun handleMessage(m: Message) {
+        when (m.type) {
+            MsgType.MSG_CHALLENGE -> {
+                val challengeHex = m.payload.toHex()
+                storePendingAuth(challengeHex, pendingDeviceLabel ?: "Linked PC")
+                showLoginApprovalScreen(challengeHex)
+                uiMessageListener?.onMessage("⏳ Login request received")
+            }
+            else -> uiMessageListener?.onMessage("Received ${m.type}")
         }
-        uiMessageListener?.onMessage(msg)
-    }
-
-    override fun onError(error: String) {
-        if (error.startsWith("EOFException")) return
-        uiMessageListener?.onError(error)
     }
 
     override fun onConnected(connectionService: ConnectionService) {
@@ -181,10 +178,11 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
     private fun processApprovedChallenge(challenge: String) {
         try {
             val handler = CryptoMessageHandler(this)
-            handler.processAuthenticationChallenge(challenge)?.let {
-                connectionManager?.sendMessage(it)
+            val response = handler.processAuthenticationChallenge(challenge.hexToBytes())
+            if (response != null) {
+                channel?.send(MsgType.MSG_RESPONSE, response)
                 uiMessageListener?.onMessage("✓ Login approved")
-            } ?: run {
+            } else {
                 uiMessageListener?.onMessage("✗ ${handler.lastUserErrorMessage ?: "Auth failed"}")
             }
         } catch (e: Exception) {
@@ -227,6 +225,9 @@ class ConnectionForegroundService : Service(), ConnectionListener, MessageListen
             .setOngoing(true)
             .build()
     }
+
+    private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
+    private fun String.hexToBytes() = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
     override fun onDestroy() {
         super.onDestroy()

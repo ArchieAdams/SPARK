@@ -14,65 +14,46 @@ import java.util.UUID
 import kotlin.concurrent.thread
 
 class BluetoothService(
-    adapter: BluetoothAdapter,
+    private val adapter: BluetoothAdapter,
     private val connectionListener: ConnectionListener? = null,
-    private val messageListener: MessageListener? = null,
     private val serviceUuid: UUID
 ) : ConnectionService() {
 
     companion object {
         private const val TAG = "BluetoothService"
         private const val NAME = "EmrysAuth"
-        private const val HEARTBEAT_MS = 5000L
         private const val MAX_FRAME_SIZE = 1024 * 1024
     }
 
-    private val adapterRef = adapter
     private val socketLock = Any()
     private var serverSocket: BluetoothServerSocket? = null
     private var currentSocket: BluetoothSocket? = null
-
-    private var acceptThread: Thread? = null
-
-    @Volatile
-    private var isRunning = false
-
-    private fun createServerSocket(): BluetoothServerSocket? {
-        return try {
-            @Suppress("MissingPermission")
-            adapterRef.listenUsingRfcommWithServiceRecord(NAME, serviceUuid)
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to create RFCOMM server socket", e)
-            null
-        }
-    }
+    @Volatile private var isRunning = false
 
     override fun connect() {
         if (isRunning) return
         isRunning = true
+        serverSocket = try {
+            @Suppress("MissingPermission")
+            adapter.listenUsingRfcommWithServiceRecord(NAME, serviceUuid)
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to open server socket", e); isRunning = false; return
+        }
 
-        serverSocket = createServerSocket() ?: return
-
-        acceptThread = thread(name = "bt-accept") {
+        thread(name = "bt-accept") {
             try {
                 while (isRunning) {
-                    val socket = serverSocket?.accept() ?: break
+                    val socket = serverSocket?.accept() ?: break   // blocks until a phone connects
                     handleConnection(socket)
                 }
             } catch (e: IOException) {
                 if (isRunning) Log.e(TAG, "Accept loop error", e)
-            } finally {
-                isRunning = false
             }
         }
     }
 
     private fun handleConnection(socket: BluetoothSocket) {
-        synchronized(socketLock) {
-            closeCurrentSocket()
-            currentSocket = socket
-        }
-
+        synchronized(socketLock) { closeCurrentSocket(); currentSocket = socket }
         setConnected(true)
         connectionListener?.onConnected(this)
 
@@ -80,10 +61,8 @@ class BluetoothService(
             val input = DataInputStream(BufferedInputStream(socket.inputStream))
             try {
                 while (isConnected()) {
-                    val message = readFramedMessage(input) ?: break
-                    if (message != "PING" && message != "PONG") {
-                        messageListener?.onMessage(message)
-                    }
+                    val bytes = readFrame(input) ?: break
+                    onBytes?.invoke(bytes)
                 }
             } catch (e: Exception) {
                 if (isConnected()) Log.e(TAG, "Read error", e)
@@ -93,33 +72,21 @@ class BluetoothService(
                 closeCurrentSocket()
             }
         }
-
-        thread(name = "bt-ping") {
-            val output = DataOutputStream(BufferedOutputStream(socket.outputStream))
-            try {
-                while (isConnected()) {
-                    Thread.sleep(HEARTBEAT_MS)
-                    writeFramedMessage(output, "PING")
-                }
-            } catch (e: Exception) {
-                // Connection likely closed
-            }
-        }
     }
 
-    override fun sendMessage(msg: String) {
+    override fun sendBytes(data: ByteArray): Boolean {
         val socket = synchronized(socketLock) { currentSocket }
-        if (socket == null || !isConnected()) return
-
-        thread {
-            try {
-                val output = DataOutputStream(BufferedOutputStream(socket.outputStream))
-                writeFramedMessage(output, msg)
-            } catch (e: IOException) {
-                setConnected(false)
-                connectionListener?.onDisconnected(this)
-                closeCurrentSocket()
-            }
+        if (socket == null || !isConnected()) return false
+        return try {
+            val out = DataOutputStream(BufferedOutputStream(socket.outputStream))
+            writeFrame(out, data)
+            true
+        } catch (e: IOException) {
+            Log.e(TAG, "Send failed", e)
+            setConnected(false)
+            connectionListener?.onDisconnected(this)
+            closeCurrentSocket()
+            false
         }
     }
 
@@ -130,46 +97,25 @@ class BluetoothService(
         closeCurrentSocket()
     }
 
-    override fun shutdown() {
-        disconnect()
+    private fun writeFrame(out: DataOutputStream, payload: ByteArray) {
+        out.writeInt(payload.size)   // 4-byte length so the reader knows where the message ends
+        out.write(payload)
+        out.flush()
     }
 
-    private fun closeCurrentSocket() {
-        synchronized(socketLock) {
-            try {
-                currentSocket?.close()
-            } catch (e: IOException) {
-                Log.e(TAG, "Error closing client socket", e)
-            }
-            currentSocket = null
-        }
-    }
+    private fun readFrame(input: DataInputStream): ByteArray? = try {
+        val len = input.readInt()
+        if (len <= 0 || len > MAX_FRAME_SIZE) null
+        else ByteArray(len).also { input.readFully(it) }
+    } catch (e: EOFException) { null }
+    
 
+    private fun closeCurrentSocket() = synchronized(socketLock) {
+        try { currentSocket?.close() } catch (e: IOException) {}
+        currentSocket = null
+    }
     private fun closeServerSocket() {
-        try {
-            serverSocket?.close()
-        } catch (e: IOException) {
-            Log.e(TAG, "Error closing server socket", e)
-        }
+        try { serverSocket?.close() } catch (e: IOException) {}
         serverSocket = null
-    }
-
-    private fun writeFramedMessage(output: DataOutputStream, msg: String) {
-        val payload = msg.toByteArray(Charsets.UTF_8)
-        output.writeInt(payload.size)
-        output.write(payload)
-        output.flush()
-    }
-
-    private fun readFramedMessage(input: DataInputStream): String? {
-        return try {
-            val length = input.readInt()
-            if (length <= 0 || length > MAX_FRAME_SIZE) return null
-            val payload = ByteArray(length)
-            input.readFully(payload)
-            payload.toString(Charsets.UTF_8)
-        } catch (e: EOFException) {
-            null
-        }
     }
 }
