@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/pem.h>
+#include <openssl/x509.h>
 #include <sys/syslog.h>
 
 #define PC_KEY_PATH "/etc/AuthApp/pki/pc.key"
@@ -18,12 +18,19 @@
 
 static const char *TAG = "message_manager";
 
-static uint64_t read_be64(const unsigned char *buf) {
-    uint64_t value = 0;
-    for (size_t i = 0; i < CHALLENGE_TIMESTAMP_SIZE; i++) {
-        value = (value << 8) | buf[i];
+static void put_be64(unsigned char *buf, uint64_t value) {
+    for (size_t i = 0; i < CHALLENGE_COUNTER_SIZE; i++) {
+        buf[i] = (unsigned char) ((value >> (8 * (CHALLENGE_COUNTER_SIZE - 1 - i))) & 0xFF);
     }
-    return value;
+}
+
+static int pubkey_der(EVP_PKEY *key, unsigned char **out, int *out_len) {
+    unsigned char *buf = NULL;
+    int len = i2d_PUBKEY(key, &buf);
+    if (len <= 0 || !buf) return 0;
+    *out = buf;
+    *out_len = len;
+    return 1;
 }
 
 static int hex_nibble(char c) {
@@ -99,27 +106,6 @@ static int generate_challenge(unsigned char *buf, size_t len) {
     return (result == (ssize_t) len) ? 0 : -1;
 }
 
-static int generate_timestamp(unsigned char *buf, size_t len) {
-    time_t now = time(NULL);
-    if (now == (time_t) -1) return -1;
-
-    uint64_t timestamp = (uint64_t) now + 300; // Add 5 minutes to current time for validity
-    for (size_t i = 0; i < sizeof(uint64_t); i++) {
-        buf[i] = (unsigned char) ((timestamp >> (8 * (sizeof(uint64_t) - 1 - i))) & 0xFF);
-    }
-    return 0;
-}
-
-static int generate_challenge_message(unsigned char *buf, size_t len) {
-    if (len < CHALLENGE_MESSAGE_SIZE) return -1; // Need at least 48 bytes for challenge + timestamp
-
-    if (generate_challenge(buf, CHALLENGE_RANDOM_SIZE) != 0) return -1; // First 32 bytes: random challenge
-    if (generate_timestamp(buf + CHALLENGE_RANDOM_SIZE, CHALLENGE_TIMESTAMP_SIZE) != 0) return -1;
-    // Next 8 bytes: timestamp
-
-    return 0;
-}
-
 int generate_signed_and_encrypted_message(
     unsigned char *message,
     size_t *message_len,
@@ -136,39 +122,56 @@ int generate_signed_and_encrypted_message(
         return 0;
     }
 
-    unsigned char plaintext[CHALLENGE_MESSAGE_SIZE];
-    EVP_PKEY *device_public_key = NULL;
-    EVP_PKEY *pc_key = NULL;
+    unsigned char m[CHALLENGE_M_SIZE];
+    EVP_PKEY *device_public_key = NULL;  // pk_A
+    EVP_PKEY *pc_key = NULL;             // sk_V
+    unsigned char *der_v = NULL, *der_a = NULL, *sign_extra = NULL;
+    int der_v_len = 0, der_a_len = 0;
     int result = 0;
 
-    if (generate_challenge_message(plaintext, sizeof(plaintext)) != 0) {
-        custom_log(LOG_ERR, TAG, "Failed to generate challenge message");
+    // M = N || ctr
+    uint64_t ctr = 0;
+    if (config_manager_bump_counter(&ctr) != 0) {
+        custom_log(LOG_ERR, TAG, "Failed to bump auth counter");
         goto cleanup;
     }
+    if (generate_challenge(m, CHALLENGE_RANDOM_SIZE) != 0) {
+        custom_log(LOG_ERR, TAG, "Failed to generate challenge nonce");
+        goto cleanup;
+    }
+    put_be64(m + CHALLENGE_RANDOM_SIZE, ctr);
 
-    memcpy(expected_response, plaintext, CHALLENGE_RESPONSE_SIZE);
-    *expected_response_len = CHALLENGE_RESPONSE_SIZE;
-    custom_log(LOG_INFO, TAG, "Challenge message generated (%zu bytes)", sizeof(plaintext));
+    memcpy(expected_response, m, CHALLENGE_M_SIZE);
+    *expected_response_len = CHALLENGE_M_SIZE;
 
-    if (!load_device_public_key(&device_public_key)) {
-        goto cleanup;
-    }
-    if (!key_manager_load_private_key(PC_KEY_PATH, &pc_key)) {
-        goto cleanup;
-    }
+    if (!load_device_public_key(&device_public_key)) goto cleanup;
+    if (!key_manager_load_private_key(PC_KEY_PATH, &pc_key)) goto cleanup;
+
+    // sign_extra = pk_V || pk_A (bound into the signature, not transmitted)
+    if (!pubkey_der(pc_key, &der_v, &der_v_len)) goto cleanup;
+    if (!pubkey_der(device_public_key, &der_a, &der_a_len)) goto cleanup;
+    sign_extra = malloc((size_t) der_v_len + (size_t) der_a_len);
+    if (!sign_extra) goto cleanup;
+    memcpy(sign_extra, der_v, der_v_len);
+    memcpy(sign_extra + der_v_len, der_a, der_a_len);
 
     size_t output_len = *message_len;
-    if (!crypto_sign_and_encrypt_with_keys(plaintext, sizeof(plaintext), pc_key, device_public_key, message,
-                                           &output_len)) {
+    if (!crypto_sign_and_encrypt_with_keys(m, sizeof m, sign_extra,
+                                           (size_t) der_v_len + (size_t) der_a_len,
+                                           pc_key, device_public_key, message, &output_len)) {
         custom_log(LOG_ERR, TAG, "Failed to sign and encrypt challenge message");
         goto cleanup;
     }
 
     *message_len = output_len;
-    custom_log(LOG_INFO, TAG, "Challenge message signed and encrypted successfully (%zu bytes)", output_len);
+    custom_log(LOG_INFO, TAG, "Challenge (ctr=%llu) signed and encrypted (%zu bytes)",
+               (unsigned long long) ctr, output_len);
     result = 1;
 
 cleanup:
+    OPENSSL_free(der_v);
+    OPENSSL_free(der_a);
+    free(sign_extra);
     key_manager_free_key(device_public_key);
     key_manager_free_key(pc_key);
     return result;
@@ -185,18 +188,26 @@ int process_signed_and_encrypted_response_bytes(
         return 0;
     }
 
-    EVP_PKEY *device_public_key = NULL;
-    EVP_PKEY *pc_key = NULL;
+    EVP_PKEY *device_public_key = NULL;  // pk_A (verify)
+    EVP_PKEY *pc_key = NULL;             // sk_V (decrypt)
+    unsigned char *der_v = NULL, *der_a = NULL, *sign_extra = NULL;
+    int der_v_len = 0, der_a_len = 0;
     int result = 0;
 
-    if (!load_device_public_key(&device_public_key)) {
-        goto cleanup;
-    }
-    if (!key_manager_load_private_key(PC_KEY_PATH, &pc_key)) {
-        goto cleanup;
-    }
+    if (!load_device_public_key(&device_public_key)) goto cleanup;
+    if (!key_manager_load_private_key(PC_KEY_PATH, &pc_key)) goto cleanup;
 
-    if (!crypto_decrypt_and_verify_with_keys(input, input_len, pc_key, device_public_key, output_message, output_len)) {
+    // response signed input = M || pk_A || pk_V (swapped vs the challenge)
+    if (!pubkey_der(pc_key, &der_v, &der_v_len)) goto cleanup;
+    if (!pubkey_der(device_public_key, &der_a, &der_a_len)) goto cleanup;
+    sign_extra = malloc((size_t) der_a_len + (size_t) der_v_len);
+    if (!sign_extra) goto cleanup;
+    memcpy(sign_extra, der_a, der_a_len);
+    memcpy(sign_extra + der_a_len, der_v, der_v_len);
+
+    if (!crypto_decrypt_and_verify_with_keys(input, input_len, sign_extra,
+                                             (size_t) der_a_len + (size_t) der_v_len,
+                                             pc_key, device_public_key, output_message, output_len)) {
         custom_log(LOG_ERR, TAG, "Failed to decrypt and verify device response");
         goto cleanup;
     }
@@ -205,6 +216,9 @@ int process_signed_and_encrypted_response_bytes(
     result = 1;
 
 cleanup:
+    OPENSSL_free(der_v);
+    OPENSSL_free(der_a);
+    free(sign_extra);
     key_manager_free_key(pc_key);
     key_manager_free_key(device_public_key);
     return result;
@@ -245,20 +259,6 @@ int validate_challenge_response(
         return 0;
     }
 
-    uint64_t expiry = read_be64(actual_response + CHALLENGE_RANDOM_SIZE);
-    time_t now = time(NULL);
-    if (now == (time_t) -1) {
-        custom_log(LOG_ERR, TAG, "Failed to read current time for challenge validation");
-        return 0;
-    }
-
-    if ((uint64_t) now >= expiry) {
-        custom_log(LOG_ERR, TAG, "Challenge response expired: now=%llu expiry=%llu",
-                   (unsigned long long) now,
-                   (unsigned long long) expiry);
-        return 0;
-    }
-
-    custom_log(LOG_INFO, TAG, "Challenge response matched and is within expiry window");
+    custom_log(LOG_INFO, TAG, "Challenge response matched (N||ctr echo verified)");
     return 1;
 }

@@ -132,10 +132,16 @@ class ConnectionForegroundService : Service(), ConnectionListener {
     private fun handleMessage(m: Message) {
         when (m.type) {
             MsgType.MSG_CHALLENGE -> {
-                val challengeHex = m.payload.toHex()
-                storePendingAuth(challengeHex, pendingDeviceLabel ?: "Linked PC")
-                showLoginApprovalScreen(challengeHex)
-                uiMessageListener?.onMessage("⏳ Login request received")
+                // Verify signature + counter BEFORE prompting, so replayed/forged
+                // challenges are dropped silently instead of nagging the user.
+                if (CryptoMessageHandler(this).verifyChallenge(m.payload) == null) {
+                    uiMessageListener?.onMessage("✗ Ignored invalid login request")
+                } else {
+                    val challengeHex = m.payload.toHex()
+                    storePendingAuth(challengeHex, pendingDeviceLabel ?: "Linked PC")
+                    showLoginApprovalScreen(challengeHex)
+                    uiMessageListener?.onMessage("⏳ Login request received")
+                }
             }
             else -> uiMessageListener?.onMessage("Received ${m.type}")
         }

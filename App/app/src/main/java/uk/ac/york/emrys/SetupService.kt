@@ -33,6 +33,7 @@ class SetupService(
         private const val KEY_PRIVATE_KEY_ALIAS = "private_key_alias"
         private const val KEY_PUBLIC_KEY = "public_key"
         private const val KEY_PC_PUBLIC_KEY = "pc_public_key"
+        private const val KEY_AUTH_COUNTER = "auth_counter"
         private const val BT_SERVICE_NAME = "EmrysSetup"
         private const val BT_DISCOVERABLE_DURATION = 120
     }
@@ -60,6 +61,13 @@ class SetupService(
 
     fun isPaired(): Boolean = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getBoolean(KEY_IS_PAIRED, false)
+
+    // Last counter (ctr_A) accepted from the verifier.
+    fun getAuthCounter(): Long = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getLong(KEY_AUTH_COUNTER, 0L)
+
+    fun setAuthCounter(value: Long) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit { putLong(KEY_AUTH_COUNTER, value) }
 
     fun getStoredConfig(): SetupConfig? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

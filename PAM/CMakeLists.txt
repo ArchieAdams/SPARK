@@ -13,11 +13,13 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(BLUEZ REQUIRED bluez)
 pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
+pkg_check_modules(TSS2_ESYS REQUIRED tss2-esys)  # TPM 2.0 NV monotonic counter
 
 enable_testing()
 
 set(COMMON_SOURCES
         config_manager.c
+        tpm_counter.c
         communication/connection_manager.c
         communication/message_manager.c
         communication/phone_connection.c
@@ -63,6 +65,7 @@ target_include_directories(Authenticator PRIVATE
         ${BLUEZ_INCLUDE_DIRS}
         ${WEBSOCKETS_INCLUDE_DIRS}
         ${OPENSSL_INCLUDE_DIR}
+        ${TSS2_ESYS_INCLUDE_DIRS}
         PkgConfig::CJSON
 )
 
@@ -75,8 +78,6 @@ target_include_directories(frame_codec_tests PRIVATE
 add_test(NAME frame_codec_tests COMMAND frame_codec_tests)
 
 add_executable(comms_tests
-        tests/comms_tests.c
-        tests/mock_transport.c
         communication/frame.c
         communication/messages.c
         communication/sas.c
@@ -93,9 +94,27 @@ target_link_libraries(comms_tests PRIVATE ${OPENSSL_LIBRARIES} pthread)
 
 add_test(NAME comms_tests COMMAND comms_tests)
 
+add_executable(crypto_envelope_tests
+        tests/crypto_envelope_tests.c
+        tests/unity.c
+        cryptography/cryptographic_methods.c
+        log_manager.c
+)
+
+target_include_directories(crypto_envelope_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/cryptography
+        ${CMAKE_SOURCE_DIR}/tests
+        ${OPENSSL_INCLUDE_DIR}
+)
+
+target_link_libraries(crypto_envelope_tests PRIVATE ${OPENSSL_LIBRARIES})
+
+add_test(NAME crypto_envelope_tests COMMAND crypto_envelope_tests)
+
 find_library(WEBSOCKETS_LIB websockets)
 target_link_libraries(Authenticator PRIVATE
-    bluetooth pthread ${WEBSOCKETS_LIB} ${OPENSSL_LIBRARIES} PkgConfig::CJSON)
+    bluetooth pthread ${WEBSOCKETS_LIB} ${OPENSSL_LIBRARIES} ${TSS2_ESYS_LIBRARIES} PkgConfig::CJSON)
 
 add_library(pam_authenticator SHARED
         pam_authenticator.c
@@ -108,6 +127,7 @@ target_include_directories(pam_authenticator PRIVATE
         ${CMAKE_SOURCE_DIR}/cryptography
         ${BLUEZ_INCLUDE_DIRS}
         ${WEBSOCKETS_INCLUDE_DIRS}
+        ${TSS2_ESYS_INCLUDE_DIRS}
         PkgConfig::CJSON
 )
 
@@ -115,6 +135,7 @@ target_link_libraries(pam_authenticator PRIVATE
         pam
         bluetooth
         pthread
+        ${TSS2_ESYS_LIBRARIES}
         ${OPENSSL_LIBRARIES}
         ${WEBSOCKETS_LIBRARIES}
         ${BLUEZ_LIBRARIES}

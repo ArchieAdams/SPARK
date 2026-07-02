@@ -2,6 +2,7 @@
 #define CONFIG_MANAGER_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define CONFIG_AUTH_TIMEOUT_MS 30000
 
@@ -17,6 +18,9 @@ int config_manager_get_device_port(void);
 int config_manager_get_device_mac(char *out, size_t out_size);
 int config_manager_set_device_channel(int channel);
 int config_manager_get_device_channel(void);
+
+uint64_t config_manager_get_counter(void);
+int config_manager_bump_counter(uint64_t *out);
 
 void cache_username(const char *username);
 void cache_setup(const char *username, int port);

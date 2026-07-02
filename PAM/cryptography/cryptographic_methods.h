@@ -12,6 +12,8 @@
 int crypto_sign_and_encrypt_with_keys(
     const unsigned char *m,
     size_t ml,
+    const unsigned char *sign_extra,
+    size_t extra_len,
     EVP_PKEY *sk,
     EVP_PKEY *pk,
     unsigned char *o,
@@ -21,8 +23,10 @@ int crypto_sign_and_encrypt_with_keys(
 int crypto_decrypt_and_verify_with_keys(
     const unsigned char *i,
     size_t il,
+    const unsigned char *sign_extra,
+    size_t extra_len,
     EVP_PKEY *sk,
-    EVP_PKEY *pk,
+    EVP_PKEY *verify_pk,
     unsigned char *m,
     size_t *ml
 );
