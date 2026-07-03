@@ -55,7 +55,9 @@ class MessagesTest {
         val n = ByteArray(32) { it.toByte() }
         val pkV = byteArrayOf(0x10, 0x11, 0x12, 0x13, 0x14, 0x15)
         val pkA = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
-        println("VECTOR SAS = ${Messages.sas(n, pkV, pkA)}")
+        assertEquals(432366812, Messages.sasCode(n, pkV, pkA))          // matches PAM sas_compute
+        assertEquals("366812", Messages.sas(n, pkV, pkA))
+        assertEquals("🌵 🔑 🐙 ☀️ 🦊 🔑", Messages.sasToEmoji(432366812)) // matches PAM sas_emoji
     }
 
     @Test fun revealRejectsWrongSize() {

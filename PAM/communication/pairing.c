@@ -48,12 +48,17 @@ int pairing_verifier_run(VerifierPairing *v, int timeout_ms) {
     if (n < 0 || !channel_send(MSG_REVEAL, out, (uint32_t)n)) return -7;
 
     // 4. SAS + local human confirm
-    sas_compute(N, sizeof N, v->pk_v, v->pk_v_len, v->pk_a, v->pk_a_len, v->sas);
-    int accept = v->confirm ? v->confirm(v->sas, v->confirm_ctx) : 1;
+    uint32_t code = sas_compute(N, sizeof N, v->pk_v, v->pk_v_len, v->pk_a, v->pk_a_len);
+    char emoji[48];
+    sas_emoji(code, emoji, sizeof emoji);
+    int accept = v->confirm ? v->confirm(emoji, v->confirm_ctx) : 1;
 
-    n = msg_encode_sas_confirm(accept, out, sizeof out);
-    channel_send(MSG_SAS_CONFIRM, out, (uint32_t)n);
-    if (!accept) return -8;
+    // On accept, our SAS_CONFIRM is sent by the caller once persistence succeeds.
+    if (!accept) {
+        n = msg_encode_sas_confirm(0, out, sizeof out);
+        channel_send(MSG_SAS_CONFIRM, out, (uint32_t)n);
+        return -8;
+    }
 
     // 5. peer's SAS_CONFIRM
     do {

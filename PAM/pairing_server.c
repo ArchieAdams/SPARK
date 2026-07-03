@@ -21,6 +21,8 @@
 
 #include "communication/websocket/websocket_service.h"
 #include "communication/pairing.h"
+#include "communication/channel.h"
+#include "communication/messages.h"
 #include "config_manager.h"
 #include "cryptography/key_manager.h"
 
@@ -73,9 +75,9 @@ static int store_phone_pubkey(const char *uuid_str, const uint8_t *der, uint32_t
     return ok ? 0 : -1;
 }
 
-static int terminal_confirm(const char *sas, void *ctx) {
+static int terminal_confirm(const char *emoji, void *ctx) {
     (void)ctx;
-    printf("\nPairing Code: %s\n", sas);
+    printf("\nPairing Emoji: %s\n", emoji);
     const char *env = getenv("AUTHAPP_SAS_APPROVE");
     if (env && (strcasecmp(env, "Y") == 0 || strcmp(env, "1") == 0)) return 1;
     printf("Confirm match? (y/n): ");
@@ -161,21 +163,23 @@ int pairing_server_run(const char *username) {
 
     if (rc == 0) {
         char uuid_str[37];
+        char mac[19];
         uuid16_to_str(v.device_id, uuid_str);
-        config_manager_write_device(uuid_str, (int)v.port);
-        if (store_phone_pubkey(uuid_str, v.pk_a, v.pk_a_len) != 0) {
+        if (discover_bt_mac(uuid_str, mac) != 0) {
+            custom_log(LOG_ERR, TAG, "Could not discover phone BT MAC; pairing failed");
+            rc = -1;
+        } else if (store_phone_pubkey(uuid_str, v.pk_a, v.pk_a_len) != 0) {
             custom_log(LOG_ERR, TAG, "Failed to store phone public key");
             rc = -1;
         } else {
-            custom_log(LOG_INFO, TAG, "Paired device %s on port %u", uuid_str, v.port);
-            char mac[19];
-            if (discover_bt_mac(uuid_str, mac) == 0) {
-                config_manager_set_device_mac(mac);
-                custom_log(LOG_INFO, TAG, "Discovered phone BT MAC: %s", mac);
-            } else {
-                custom_log(LOG_WARNING, TAG, "Could not discover phone BT MAC (Bluetooth auth may be unavailable)");
-            }
+            config_manager_write_device(uuid_str, (int)v.port);
+            config_manager_set_device_mac(mac);
+            custom_log(LOG_INFO, TAG, "Paired device %s on port %u (BT MAC %s)", uuid_str, v.port, mac);
         }
+        uint8_t msg[8];
+        ssize_t mn = rc == 0 ? msg_encode_sas_confirm(1, msg, sizeof msg)
+                             : msg_encode_abort(ABORT_PROTOCOL_ERROR, msg, sizeof msg);
+        channel_send(rc == 0 ? MSG_SAS_CONFIRM : MSG_ABORT, msg, (uint32_t)mn);
     } else {
         custom_log(LOG_ERR, TAG, "Pairing failed (rc=%d)", rc);
     }

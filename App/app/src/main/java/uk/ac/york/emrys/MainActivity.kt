@@ -319,7 +319,7 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
             pairingStatusText.text = "Confirm code on both devices"
             pairingSasText.text = sas
             pairingSasText.visibility = View.VISIBLE
-            pairingDetailText.text = "Verify the SAS code matches the one shown on your PC."
+            pairingDetailText.text = "Verify the emoji match the ones shown on your PC."
             pairingDetailText.visibility = View.VISIBLE
             sasButtonRow.visibility = View.VISIBLE
         }

@@ -6,8 +6,6 @@
 #include <assert.h>
 #include <openssl/evp.h>
 
-extern void mock_set_side(int);
-
 static int eq_hex(const uint8_t *b, ssize_t n, const char *want) {
     char got[1024]; for (ssize_t i = 0; i < n; i++) sprintf(got + i * 2, "%02x", b[i]);
     return strcmp(got, want) == 0;
@@ -35,7 +33,7 @@ static void test_sas_vector(void) {
     uint8_t n[32]; for (int i = 0; i < 32; i++) n[i] = i;
     uint8_t pkv[6] = {0x10,0x11,0x12,0x13,0x14,0x15};
     uint8_t pka[8] = {1,2,3,4,5,6,7,8};
-    char sas[7]; sas_compute(n, 32, pkv, 6, pka, 8, sas);
+    char sas[7]; snprintf(sas, sizeof sas, "%06u", sas_compute(n, 32, pkv, 6, pka, 8) % 1000000u);
     assert(strcmp(sas, "366812") == 0);   // matches Kotlin Messages.sas
     printf("SAS vector OK (366812)\n");
 }

@@ -78,11 +78,10 @@ target_include_directories(frame_codec_tests PRIVATE
 add_test(NAME frame_codec_tests COMMAND frame_codec_tests)
 
 add_executable(comms_tests
+        tests/comms_tests.c
         communication/frame.c
         communication/messages.c
         communication/sas.c
-        communication/channel.c
-        communication/pairing.c
 )
 
 target_include_directories(comms_tests PRIVATE

@@ -49,6 +49,7 @@ class SetupService(
     @Volatile private var commitC: ByteArray? = null
     @Volatile private var userAccepted = false
     @Volatile private var peerAccepted: Boolean? = null
+    @Volatile private var sasCode = 0
     private val lock = Any()
 
     data class SetupConfig(
@@ -137,8 +138,8 @@ class SetupService(
                         abort(AbortReason.COMMITMENT_MISMATCH, "Commitment mismatch")
                         return
                     }
-                    val sas = Messages.sas(rv.n, pkVDer!!, pkADer!!)
-                    onSasGenerated?.invoke(sas)
+                    sasCode = Messages.sasCode(rv.n, pkVDer!!, pkADer!!)
+                    onSasGenerated?.invoke(Messages.sasToEmoji(sasCode))
                 }
 
                 MsgType.MSG_SAS_CONFIRM -> {
@@ -161,14 +162,18 @@ class SetupService(
 
     fun confirmSas(accept: Boolean) {
         userAccepted = accept
-        channel?.send(MsgType.MSG_SAS_CONFIRM, Messages.sasConfirm(accept))
         if (!accept) {
+            channel?.send(MsgType.MSG_SAS_CONFIRM, Messages.sasConfirm(false))
             onSetupError?.invoke("Pairing rejected by user")
             cleanup()
             return
         }
+        startBtBinding(deviceId)
+        channel?.send(MsgType.MSG_SAS_CONFIRM, Messages.sasConfirm(true))
         maybeComplete()
     }
+
+    fun sasToEmoji(): String = Messages.sasToEmoji(sasCode)
 
     private fun maybeComplete() = synchronized(lock) {
         when {
@@ -185,7 +190,6 @@ class SetupService(
                     devicePort = devicePort
                 )
                 saveConfig(config)
-                startBtBinding(deviceId)
                 onSetupComplete?.invoke(config)
                 cleanup()
             }

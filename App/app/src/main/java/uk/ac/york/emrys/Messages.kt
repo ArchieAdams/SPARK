@@ -77,16 +77,28 @@ object Messages {
     fun parseAbort(p: ByteArray): AbortReason =
         AbortReason.fromCode(if (p.isEmpty()) -1 else p[0].toInt())
 
-    // SAS = SHA-256( lp(N) ‖ lp(pkV) ‖ lp(pkA) ), first 4 bytes BE masked, mod 1e6.
-    fun sas(n: ByteArray, pkV: ByteArray, pkA: ByteArray): String {
+    // SAS code = SHA-256( lp(N) ‖ lp(pkV) ‖ lp(pkA) ), first 4 bytes BE, masked to 31 bits.
+    fun sasCode(n: ByteArray, pkV: ByteArray, pkA: ByteArray): Int {
         val md = MessageDigest.getInstance("SHA-256")
         listOf(n, pkV, pkA).forEach {
             md.update(ByteBuffer.allocate(4).putInt(it.size).array())
             md.update(it)
         }
-        val code = ByteBuffer.wrap(md.digest()).int and 0x7FFFFFFF
-        return String.format(Locale.US, "%06d", code % 1_000_000)
+        return ByteBuffer.wrap(md.digest()).int and 0x7FFFFFFF
     }
+
+    fun sas(n: ByteArray, pkV: ByteArray, pkA: ByteArray): String =
+        String.format(Locale.US, "%06d", sasCode(n, pkV, pkA) % 1_000_000)
+
+    private val EMOJI = arrayOf(
+        "🎉", "🎱", "🤖", "👻", "🐶", "📱", "🦊", "🐼",
+        "🦁", "🐸", "🐙", "🦄", "🌵", "🌳", "🍎", "🍌",
+        "🍕", "🚗", "🚀", "🌈", "🧲", "🔥", "❄️", "🐷",
+        "🌙", "☀️", "🎈", "🎁", "🔑", "🍄", "💎", "🎯"
+    )
+
+    fun sasToEmoji(code: Int): String =
+        (25 downTo 0 step 5).joinToString(" ") { EMOJI[(code shr it) and 0x1F] }
 
     const val NONCE = 32
     const val R = 32
