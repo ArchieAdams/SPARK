@@ -1,20 +1,10 @@
->**Note**: This project is under active development until the 22nd of July. The README will be updated with a quick-start guide and instructions for running the formal verification proofs before this date.
+>**Note**: This project is under active development until the 22nd of July.
 
+[![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
+![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)                                                                                                                                                         
+![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
 
-
-
- 
-<svg xmlns="http://www.w3.org/2000/svg" width="510" height="200" viewBox="0 0 510 200">
-  <rect width="510" height="200" fill="none"/>
-  <text x="20" y="30.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████╗██████╗  █████╗ ██████╗ ██╗  ██╗</text>
-  <text x="20" y="55.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">██╔════╝██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝</text>
-  <text x="20" y="80.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████╗██████╔╝███████║██████╔╝█████╔╝ </text>
-  <text x="20" y="105.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">╚════██║██╔═══╝ ██╔══██║██╔══██╗██╔═██╗ </text>
-  <text x="20" y="130.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████║██║     ██║  ██║██║  ██║██║  ██╗</text>
-  <text x="20" y="155.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝</text>
-  <text x="20" y="175.00" font-family="'Share Tech Mono', 'DejaVu Sans Mono', 'Courier New', monospace" font-size="13" letter-spacing="2.5px" fill="currentColor" xml:space="preserve">SECURE PASSWORDLESS AUTHENTICATION WITH</text>
-  <text x="20" y="190.00" font-family="'Share Tech Mono', 'DejaVu Sans Mono', 'Courier New', monospace" font-size="13" letter-spacing="2.5px" fill="currentColor" xml:space="preserve">REVEAL-COMMITTED KNOWLEDGE</text>
-</svg>
+![title.svg](title.svg)
 
 <hr>
 

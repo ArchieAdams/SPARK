@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="510" height="200" viewBox="0 0 510 200">
+    <style>
+        svg { color: #1f2328; }
+        @media (prefers-color-scheme: dark) { svg { color: #e6edf3; } }
+    </style>
+    <rect width="510" height="200" fill="none"/>
+    <text x="20" y="30.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████╗██████╗  █████╗ ██████╗ ██╗  ██╗</text>
+    <text x="20" y="55.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">██╔════╝██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝</text>
+    <text x="20" y="80.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████╗██████╔╝███████║██████╔╝█████╔╝ </text>
+    <text x="20" y="105.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">╚════██║██╔═══╝ ██╔══██║██╔══██╗██╔═██╗ </text>
+    <text x="20" y="130.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">███████║██║     ██║  ██║██║  ██║██║  ██╗</text>
+    <text x="20" y="155.00" font-family="'DejaVu Sans Mono', 'Courier New', monospace" font-size="20" fill="currentColor" xml:space="preserve">╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝</text>
+    <text x="20" y="175.00" font-family="'Share Tech Mono', 'DejaVu Sans Mono', 'Courier New', monospace" font-size="13" letter-spacing="2.5px" fill="currentColor" xml:space="preserve">SECURE PASSWORDLESS AUTHENTICATION WITH</text>
+    <text x="20" y="190.00" font-family="'Share Tech Mono', 'DejaVu Sans Mono', 'Courier New', monospace" font-size="13" letter-spacing="2.5px" fill="currentColor" xml:space="preserve">REVEAL-COMMITTED KNOWLEDGE</text>
+</svg>
