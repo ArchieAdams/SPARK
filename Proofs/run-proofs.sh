@@ -9,11 +9,11 @@ run() {
   [ $code -eq 0 ] && echo "PASS  $script" || echo "FAIL  $script (exit $code, see $log)"
 }
 
-run "setup-proverif.sh"
-run "remote-proverif.sh"
+run "run-proverif-setup.sh"
+run "run-proverif-remote.sh"
 run "run-easycrypt.sh"
 
 echo -e "\nSetup ProVerif:"
-grep -h "^RESULT" logs/setup-proverif.log 2>/dev/null || echo "none found"
+grep -h "^RESULT" logs/run-proverif-setup.log 2>/dev/null || echo "none found"
 echo -e "\nRemote ProVerif:"
-grep -h "^RESULT" logs/remote-proverif.log 2>/dev/null || echo "none found"
+grep -h "^RESULT" logs/run-proverif-remote.log 2>/dev/null || echo "none found"

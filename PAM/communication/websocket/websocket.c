@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -128,6 +129,12 @@ int ws_init(int port) {
     // Corrected paths to match your project root
     info.ssl_cert_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.crt";
     info.ssl_private_key_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.key";
+
+    int devnull = open("/dev/null", O_WRONLY);
+    if (devnull != -1) {
+        dup2(devnull, STDERR_FILENO);
+        close(devnull);
+    }
 
     context = lws_create_context(&info);
     return context ? 0 : -1;

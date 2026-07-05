@@ -82,10 +82,10 @@ void *websocket_connect() {
     unsigned int new_session = ws_session_id;
     pthread_mutex_unlock(&ws_session_lock);
 
-    custom_log(LOG_INFO, TAG, " Starting new WebSocket session #%u\n", new_session);
+    custom_log(LOG_DEBUG, TAG, "Starting new WebSocket session #%u\n", new_session);
 
     if (ws_running) {
-        custom_log(LOG_INFO, TAG, " Previous session still active, tearing down old session...\n");
+        custom_log(LOG_DEBUG, TAG, "Previous session still active, tearing down old session...\n");
         websocket_disconnect();
     }
 
@@ -94,7 +94,7 @@ void *websocket_connect() {
 
     // Start WebSocket server
     start_websocket_service();
-    custom_log(LOG_INFO, TAG, " UDP broadcast sent, waiting for phone to connect...\n");
+    custom_log(LOG_DEBUG, TAG, "UDP broadcast sent, waiting for phone to connect...\n");
 
     // Start WebSocket service loop in a separate thread
     ws_running = true;
@@ -105,7 +105,7 @@ void *websocket_connect() {
     pthread_mutex_unlock(&ws_session_lock);
 
     if (pthread_create(&ws_service_thread, NULL, ws_service_loop, NULL) != 0) {
-        custom_log(LOG_INFO, TAG, " Failed to create WebSocket service thread\n");
+        custom_log(LOG_DEBUG, TAG, "Failed to create WebSocket service thread\n");
         ws_running = false;
 
         pthread_mutex_lock(&ws_session_lock);
@@ -117,7 +117,7 @@ void *websocket_connect() {
     }
     ws_thread_created = true;
 
-    custom_log(LOG_INFO, TAG, " WebSocket service is running (session #%u)\n", new_session);
+    custom_log(LOG_DEBUG, TAG, "WebSocket service is running (session #%u)\n", new_session);
     return NULL;
 }
 

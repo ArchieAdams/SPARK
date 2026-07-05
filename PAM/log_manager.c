@@ -3,7 +3,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/syslog.h>
+
+bool debug = false;
+
+void set_debug(bool enable) {
+    debug = enable;
+}
 
 static void create_message(const char *tag, const char *text, char *message, size_t message_size) {
     if (tag != NULL && tag[0] != '\0') {
@@ -31,10 +38,17 @@ static void log_error(const char *tag, const char *text) {
 }
 
 static void log_info(const char *tag, const char *text) {
+    if (!debug) {
+        fprintf(stdout, "%s\n", text);
+        return;
+    }
     log_with_level(LOG_INFO, "INFO", tag, text);
 }
 
 static void log_debug(const char *tag, const char *text) {
+    if (!debug) {
+        return;
+    }
     log_with_level(LOG_DEBUG, "DEBUG", tag, text);
 }
 

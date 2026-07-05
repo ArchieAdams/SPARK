@@ -42,7 +42,7 @@ static int send_udp_broadcast() {
        custom_log(LOG_ERR,TAG, "UDP broadcast skipped: invalid device port from config (%d)\n", port);
         return -1;
     }
-    custom_log(LOG_INFO,TAG,"Sending UDP broadcast on port %d\n", port);
+    custom_log(LOG_DEBUG,TAG,"Sending UDP broadcast on port %d\n", port);
 
     // Send broadcast
     struct sockaddr_in dest = {0};

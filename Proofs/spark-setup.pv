@@ -20,17 +20,17 @@ type commitment.
 
 fun pk(skey): pkey.
 
-(* Hash function for the Short Authentication String *)
-fun sas(pkey, pkey, bitstring): bitstring.
+(* Hash function for the Short Authentication String (over the nonce N only) *)
+fun sas(pkey, pkey, nonce): bitstring.
 
 (* Explicit Commitment function for the Nonce *)
 fun commit(bitstring): commitment.
 
 (* Grinding attack *)
-fun forgeKeyA(pkey, pkey, bitstring): skey.
-fun forgeKeyV(pkey, pkey, bitstring): skey.
-fun    forgeB(pkey, pkey, bitstring): bitstring.
-equation forall v: pkey, a: pkey, b: bitstring;
+fun forgeKeyA(pkey, pkey, nonce): skey.
+fun forgeKeyV(pkey, pkey, nonce): skey.
+fun    forgeB(pkey, pkey, nonce): nonce.
+equation forall v: pkey, a: pkey, b: nonce;
   fa <- pk(forgeKeyA(v, a, b));
   fv <- pk(forgeKeyV(v, a, b));
   fb <-       forgeB(v, a, b);
@@ -51,7 +51,7 @@ let Verifier() =
   out(c, (pk_V, commit((N,r))));
   in(c, pk_A': pkey) [precise];
   out(c, (N,r));
-  sas_V <- sas(pk_V, pk_A', (N, r));
+  sas_V <- sas(pk_V, pk_A', N);
   event verifierGenerated(pk_V, pk_A', sas_V);
   out(visual_channel_V, sas_V).
 
@@ -65,7 +65,7 @@ let Authenticator() =
   in(c, (pk_V': pkey, c': commitment));
   in(c, (N': nonce, r': bitstring));
   if commit((N', r')) = c' then
-    sas_A <- sas(pk_V', pk_A, (N', r'));
+    sas_A <- sas(pk_V', pk_A, N');
     event authenticatorGenerated(pk_V', pk_A, sas_A);
     out(visual_channel_A, sas_A).
 
