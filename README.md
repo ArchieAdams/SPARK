@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
 ![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)                                                                                                                                                         
 ![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21207792.svg)](https://doi.org/10.5281/zenodo.21207792)
 
 ![title.svg](title.svg)
 
@@ -20,6 +21,13 @@ The underlying protocol is formally verified using ProVerif and EasyCrypt.
 
 ## Contents
 This repository contains the source code for the SPARK PAM module and companion app, as well as the formal verification proofs.
+
+- `quickstart.sh`: runs the Proofs and PAM components end-to-end for a quick sanity check.
+- `Proofs`: ProVerif and EasyCrypt models, Docker scripts.
+- `PAM`: verifier daemon and PAM module (C, cmake).
+- `App`: companion Android app (requires a real phone, not covered by `quickstart.sh`).
+
+Run `./quickstart.sh` from the repo root to check the Proofs and PAM components (Docker and cmake/make required).
 
 ### Proofs
 The `Proofs` directory contains the formal verification proofs for the SPARK protocol, implemented using ProVerif and EasyCrypt.
@@ -121,6 +129,8 @@ It is a standard Gradle project (minimum SDK 24). To build it, either open `App`
 ```
 
 and install the resulting APK on a phone. Pairing with a desktop is done from within the app, as described in the PAM section above.
+
+> **Note**: The App requires real phone hardware (Bluetooth and a hardware-backed biometric keystore) and cannot be run headlessly in Docker/CI. 
 
 <hr>
 
