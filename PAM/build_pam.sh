@@ -1,11 +1,18 @@
 #!/bin/bash
+set -e
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 PAM_BUILD_DIR="$BUILD_DIR/pam"
 
-
+# Support for non-arch
 INSTALL_DIR="/usr/lib/security"
+for candidate in "/usr/lib/security" "/usr/lib/$(uname -m)-linux-gnu/security" "/lib/security"; do
+    if [ -d "$candidate" ]; then
+        INSTALL_DIR="$candidate"
+        break
+    fi
+done
 
 DO_INSTALL=0
 if [ "${1:-}" = "--install" ]; then
@@ -65,8 +72,7 @@ if [ "$DO_INSTALL" -eq 1 ]; then
     echo ""
     echo "Exported PAM symbols:"
     nm -D "$INSTALL_DIR/pam_authenticator.so" | grep "pam_sm" || true
-    sudo cp build/pam/pam_authenticator.so /usr/lib/security/
-    sudo cp pam_config/authenticator-test /etc/pam.d/
+    sudo cp "$PROJECT_DIR/pam_config/authenticator-test" /etc/pam.d/
 else
     echo "Skipping install. Use '--install' to install to $INSTALL_DIR."
 fi

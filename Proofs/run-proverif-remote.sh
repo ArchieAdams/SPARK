@@ -1,2 +1,2 @@
-docker build -f ProVerif.dockerfile  -t proverif:2.05 .                                                                                                                                                                                              ─╯
+docker build -f ProVerif.dockerfile -t proverif:2.05 .
 docker run --rm -v "$(pwd)":/artifact proverif:2.05 ./spark-remote.pv
