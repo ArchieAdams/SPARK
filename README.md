@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
 ![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
 
-<p align="center">
+<p align="left">
   <img src="logo.png" width="200" alt="SPARK logo">
   <img src="title.svg" alt="title">
 </p>
