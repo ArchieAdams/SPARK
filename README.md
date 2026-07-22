@@ -1,9 +1,12 @@
-[![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
-![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)                                                                                                                                                         
-![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21207792.svg)](https://doi.org/10.5281/zenodo.21207792)
 
-![title.svg](title.svg)
+[![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
+![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
+
+<p align="center">
+  <img src="logo.png" width="80" alt="SPARK logo">
+  <img src="title.svg" alt="title">
+</p>
 
 <hr>
 
