@@ -4,7 +4,7 @@
 ![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
 
 <p align="center">
-  <img src="logo.png" width="80" alt="SPARK logo">
+  <img src="logo.png" width="200" alt="SPARK logo">
   <img src="title.svg" alt="title">
 </p>
 
