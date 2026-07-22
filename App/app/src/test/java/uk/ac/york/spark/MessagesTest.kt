@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 
         const char *setup_username = argv[2];
         custom_log(LOG_INFO, TAG, "Starting A1 pairing for user '%s' (WebSocket: 8080, UDP: 5555)\n", setup_username);
-        custom_log(LOG_INFO, TAG, "Open the mobile emrys and start pairing now.\n");
+        custom_log(LOG_INFO, TAG, "Open the mobile SPARK app and start pairing now.\n");
 
         if (pairing_server_run(setup_username) != 0) {
             custom_log(LOG_ERR, TAG, "Pairing failed.\n");

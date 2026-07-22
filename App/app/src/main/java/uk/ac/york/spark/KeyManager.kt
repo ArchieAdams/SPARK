@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties

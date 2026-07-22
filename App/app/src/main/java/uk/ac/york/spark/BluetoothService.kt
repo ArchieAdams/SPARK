@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
@@ -21,7 +21,7 @@ class BluetoothService(
 
     companion object {
         private const val TAG = "BluetoothService"
-        private const val NAME = "EmrysAuth"
+        private const val NAME = "SparkAuth"
         private const val MAX_FRAME_SIZE = 1024 * 1024
     }
 

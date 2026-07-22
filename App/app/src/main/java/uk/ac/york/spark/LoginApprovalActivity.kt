@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.content.Intent
 import android.os.Bundle
@@ -21,8 +21,8 @@ class LoginApprovalActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_CHALLENGE = "extra_challenge"
         const val EXTRA_DEVICE_LABEL = "extra_device_label"
-        const val ACTION_APPROVED = "uk.ac.york.emrys.LOGIN_APPROVED"
-        const val ACTION_DENIED  = "uk.ac.york.emrys.LOGIN_DENIED"
+        const val ACTION_APPROVED = "uk.ac.york.spark.LOGIN_APPROVED"
+        const val ACTION_DENIED  = "uk.ac.york.spark.LOGIN_DENIED"
         const val EXTRA_RESULT_CHALLENGE = "extra_result_challenge"
         private const val COUNTDOWN_MS = 30_000L
     }

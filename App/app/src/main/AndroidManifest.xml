@@ -15,7 +15,9 @@
 
     <application
         android:allowBackup="true"
-        android:label="Emrys"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="SPARK"
         android:theme="@style/Theme.AppCompat">
 
         <activity android:name=".MainActivity"

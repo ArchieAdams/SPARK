@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 abstract class ConnectionService : ByteTransport {
     private var isConnected: Boolean = false

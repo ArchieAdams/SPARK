@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 sealed class FrameCodecException(message: String) : IllegalArgumentException(message) {
     class FrameTooSmall : FrameCodecException("Frame is too small")

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "uk.ac.york.emrys"
+    namespace = "uk.ac.york.spark"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
 
 
     defaultConfig {
-        applicationId = "uk.ac.york.emrys"
+        applicationId = "uk.ac.york.spark"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

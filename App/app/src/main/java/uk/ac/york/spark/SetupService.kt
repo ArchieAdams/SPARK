@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.Manifest
 import android.app.Activity
@@ -34,7 +34,7 @@ class SetupService(
         private const val KEY_PUBLIC_KEY = "public_key"
         private const val KEY_PC_PUBLIC_KEY = "pc_public_key"
         private const val KEY_AUTH_COUNTER = "auth_counter"
-        private const val BT_SERVICE_NAME = "EmrysSetup"
+        private const val BT_SERVICE_NAME = "SparkSetup"
         private const val BT_DISCOVERABLE_DURATION = 120
     }
 

@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.Manifest
 import android.bluetooth.BluetoothManager
@@ -158,8 +158,8 @@ class MainActivity : AppCompatActivity(), MessageListener, ConnectionListener {
         }
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Emrys")
-            .setSubtitle("Authenticate to open Emrys")
+            .setTitle("SPARK")
+            .setSubtitle("Authenticate to open SPARK")
             .setNegativeButtonText("Cancel")
             .build()
 

@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -23,8 +23,8 @@ class ConnectionForegroundService : Service(), ConnectionListener {
         private const val CHANNEL_AUTH = "auth_request_channel"
         private const val NOTIFICATION_ID = 1
 
-        const val ACTION_START_CONNECTION = "uk.ac.york.emrys.START_CONNECTION"
-        const val ACTION_STOP_CONNECTION  = "uk.ac.york.emrys.STOP_CONNECTION"
+        const val ACTION_START_CONNECTION = "uk.ac.york.spark.START_CONNECTION"
+        const val ACTION_STOP_CONNECTION  = "uk.ac.york.spark.STOP_CONNECTION"
 
         private const val PREFS_NAME = "pending_auth_state"
         private const val KEY_PENDING_CHALLENGE = "pending_challenge"

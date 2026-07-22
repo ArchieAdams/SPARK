@@ -45,7 +45,7 @@ sdp_session_t *create_sdp_session(const char *mac) {
     }
 
     if (!session) {
-        printf("[SDP] Discovery unavailable for %s (emrys may need to be open)\n", mac);
+        printf("[SDP] Discovery unavailable for %s (SPARK app may need to be open)\n", mac);
     }
     return session;
 }

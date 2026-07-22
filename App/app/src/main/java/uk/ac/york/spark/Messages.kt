@@ -1,4 +1,4 @@
-package uk.ac.york.emrys
+package uk.ac.york.spark
 
 import java.nio.ByteBuffer
 import java.security.MessageDigest
