@@ -92,13 +92,13 @@ static int terminal_confirm(const char *emoji, void *ctx) {
 }
 
 typedef struct {
-    char codes[RECOVERY_CODES][RECOVERY_CODE_MAX];
-    char hashes[RECOVERY_CODES][RECOVERY_HASH_MAX];
+    char codes[RECOVERY_CODES + 1][RECOVERY_CODE_MAX];    // last one is the re-pair code
+    char hashes[RECOVERY_CODES + 1][RECOVERY_HASH_MAX];
 } RecoverySet;
 
 // generate before anything is written so a failure aborts cleanly
 static int prepare_recovery_codes(RecoverySet *r) {
-    for (int i = 0; i < RECOVERY_CODES; i++) {
+    for (int i = 0; i <= RECOVERY_CODES; i++) {
         if (recovery_generate_code(r->codes[i], sizeof r->codes[i]) != 0 ||
             recovery_hash(r->codes[i], r->hashes[i], sizeof r->hashes[i]) != 0) {
             explicit_bzero(r, sizeof *r);
@@ -111,12 +111,13 @@ static int prepare_recovery_codes(RecoverySet *r) {
 static int issue_recovery_codes(RecoverySet *r) {
     const char *hp[RECOVERY_CODES];
     for (int i = 0; i < RECOVERY_CODES; i++) hp[i] = r->hashes[i];
-    if (config_manager_set_recovery(hp, RECOVERY_CODES) != 0) { explicit_bzero(r, sizeof *r); return -1; }
+    if (config_manager_set_recovery(hp, RECOVERY_CODES, r->hashes[RECOVERY_CODES]) != 0) { explicit_bzero(r, sizeof *r); return -1; }
 
     printf("\n=== Recovery codes (write these down now) ===\n");
-    printf("Each works once, with or without your phone. Type one into the\n");
-    printf("password field at login. Re-pairing issues a new set.\n\n");
+    printf("Login codes: each works once in the password field at login.\n");
     for (int i = 0; i < RECOVERY_CODES; i++) printf("  %d. %s\n", i + 1, r->codes[i]);
+    printf("Re-pair code: required by 'pkexec /usr/local/bin/spark-pair'. Re-pairing issues a fresh set.\n");
+    printf("  %s\n", r->codes[RECOVERY_CODES]);
     fflush(stdout);
 
     if (!sas_auto_approve()) {

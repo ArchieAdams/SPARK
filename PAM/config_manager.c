@@ -26,6 +26,7 @@ typedef struct {
     uint64_t counter;
     char recovery[CONFIG_RECOVERY_MAX][CONFIG_RECOVERY_HASH_LEN];
     int recovery_n;
+    char repair[CONFIG_RECOVERY_HASH_LEN];
     long recovery_used;
 } ConfigData;
 
@@ -37,6 +38,7 @@ static int cached_channel = -1;
 static uint64_t cached_counter = 0;
 static char cached_recovery[CONFIG_RECOVERY_MAX][CONFIG_RECOVERY_HASH_LEN] = {{0}};
 static int cached_recovery_n = 0;
+static char cached_repair[CONFIG_RECOVERY_HASH_LEN] = {0};
 static long cached_recovery_used = 0;
 
 static int copy_value(char *dst, size_t dst_size, const char *src) {
@@ -97,6 +99,7 @@ static int load_config_from_file(FILE *f, ConfigData *cfg) {
         else if (strcmp(key, "recovery_hash") == 0 && value[0] == '$' && cfg->recovery_n < CONFIG_RECOVERY_MAX) {
             if (copy_value(cfg->recovery[cfg->recovery_n], sizeof(cfg->recovery[0]), value) == 0) cfg->recovery_n++;
         }
+        else if (strcmp(key, "repair_hash") == 0 && value[0] == '$') copy_value(cfg->repair, sizeof(cfg->repair), value);
         else if (strcmp(key, "recovery_used") == 0) cfg->recovery_used = strtol(value, NULL, 10);
     }
     return (cfg->uuid[0] != '\0') ? 0 : -1;
@@ -116,6 +119,7 @@ int load_config(void) {
         cached_counter = cfg.counter;
         memcpy(cached_recovery, cfg.recovery, sizeof cached_recovery);
         cached_recovery_n = cfg.recovery_n;
+        memcpy(cached_repair, cfg.repair, sizeof cached_repair);
         cached_recovery_used = cfg.recovery_used;
         if (cfg.username[0]) copy_value(cached_username, sizeof(cached_username), cfg.username);
     }
@@ -142,6 +146,7 @@ int config_manager_write_full(const char *username, const char *uuid, int port, 
     if (cached_channel > 0) fprintf(f, "device_channel=%d\n", cached_channel);
     fprintf(f, "device_counter=%llu\n", (unsigned long long) cached_counter);
     for (int i = 0; i < cached_recovery_n; i++) fprintf(f, "recovery_hash=%s\n", cached_recovery[i]);
+    if (cached_repair[0]) fprintf(f, "repair_hash=%s\n", cached_repair);
     if (cached_recovery_used) fprintf(f, "recovery_used=%ld\n", cached_recovery_used);
 
     fclose(f);
@@ -212,12 +217,13 @@ int config_manager_bump_counter(uint64_t *out) {
     return 0;
 }
 
-int config_manager_set_recovery(const char *const *hashes, int n) {
-    if (!hashes || n < 0 || n > CONFIG_RECOVERY_MAX) return -1;
+int config_manager_set_recovery(const char *const *hashes, int n, const char *repair_hash) {
+    if (!hashes || !repair_hash || n < 0 || n > CONFIG_RECOVERY_MAX) return -1;
     memset(cached_recovery, 0, sizeof cached_recovery);
     cached_recovery_n = 0;
     for (int i = 0; i < n; i++)
         if (copy_value(cached_recovery[i], sizeof(cached_recovery[0]), hashes[i]) != 0) return -1;
+    if (copy_value(cached_repair, sizeof cached_repair, repair_hash) != 0) return -1;
     cached_recovery_n = n;
     cached_recovery_used = 0;
     return config_manager_write_full(NULL, NULL, -1, NULL);
@@ -238,6 +244,8 @@ int config_manager_recovery_consume(int i) {
     cached_recovery_used = (long)time(NULL);
     return config_manager_write_full(NULL, NULL, -1, NULL);
 }
+
+const char *config_manager_repair_hash(void) { return cached_repair[0] ? cached_repair : NULL; }
 
 long config_manager_recovery_used(void) { return cached_recovery_used; }
 

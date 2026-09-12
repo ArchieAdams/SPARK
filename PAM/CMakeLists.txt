@@ -115,7 +115,7 @@ add_test(NAME crypto_envelope_tests COMMAND crypto_envelope_tests)
 
 find_library(WEBSOCKETS_LIB websockets)
 target_link_libraries(Authenticator PRIVATE
-    bluetooth pthread crypt ${WEBSOCKETS_LIB} ${OPENSSL_LIBRARIES} ${TSS2_ESYS_LIBRARIES} PkgConfig::CJSON)
+    bluetooth pthread crypt pam pam_misc ${WEBSOCKETS_LIB} ${OPENSSL_LIBRARIES} ${TSS2_ESYS_LIBRARIES} PkgConfig::CJSON)
 
 add_executable(recovery_tests
         tests/recovery_tests.c

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -6,11 +7,25 @@
 #include <log_manager.h>
 #include <sys/syslog.h>
 
+#include <security/pam_appl.h>
+#include <security/pam_misc.h>
+
 #include "authenticator.h"
 #include "pairing_server.h"
 #include "config_manager.h"
 
 static const char* TAG = "main";
+
+// Under pkexec (allow_active), the re-pair code is the actual authorisation.
+static int repair_auth(const char *user) {
+    pam_handle_t *pamh = NULL;
+    struct pam_conv conv = { misc_conv, NULL };
+    if (pam_start("spark-pair", user, &conv, &pamh) != PAM_SUCCESS) return -1;
+    int rc = pam_authenticate(pamh, 0);
+    if (rc == PAM_SUCCESS) rc = pam_acct_mgmt(pamh, 0);
+    pam_end(pamh, rc);
+    return rc == PAM_SUCCESS ? 0 : -1;
+}
 
 int main(int argc, char *argv[]) {
     // Check for setup mode
@@ -21,6 +36,11 @@ int main(int argc, char *argv[]) {
         }
 
         const char *setup_username = argv[2];
+        cache_username(setup_username);
+        if (getenv("PKEXEC_UID") && load_config() == 0 && repair_auth(setup_username) != 0) {
+            custom_log(LOG_ERR, TAG, "Re-pair authorisation failed.\n");
+            return 1;
+        }
         custom_log(LOG_INFO, TAG, "Starting A1 pairing for user '%s' (WebSocket: 8080, UDP: 5555)\n", setup_username);
         custom_log(LOG_INFO, TAG, "Open the mobile SPARK app and start pairing now.\n");
 

@@ -113,18 +113,18 @@ Then, from the `PAM` directory:
    ./setup.sh <username>
    ```
    This starts the pairing flow: both devices display an emoji SAS string, and you confirm on the phone that they match.
-   Pairing ends by printing three one-time recovery codes (five EFF Diceware words each). Write them down; the screen is cleared after you press Enter.
+   Pairing ends by printing three one-time login codes and one re-pair code (five EFF Diceware words each). Write them down; the screen is cleared after you press Enter.
 
 #### Recovery codes
-Each code works once, with or without the phone. Type it into the password field at login (SDDM and similar greeters, which hand it over once the phone flow has failed), or at the `Recovery code:` prompt that appears after the phone flow fails (GDM, console, sudo). Using one prints a warning on every later phone login until you re-pair. Re-pairing replaces the whole set. Do not stack `pam_authenticator.so` after a password module: a token set by an earlier module is treated as a recovery code.
+A login code works once, with or without the phone. Type it into the password field at login (SDDM and similar greeters, which hand it over once the phone flow has failed), or at the `Login code:` prompt that appears after the phone flow fails (GDM, console, sudo). Logins never consume the re-pair code, so it is always there for `spark-pair` when the phone is gone. Using any code prints a warning on every later phone login until you re-pair. Do not stack `pam_authenticator.so` after a password module: a token set by an earlier module is treated as a recovery code.
 
 Only yescrypt hashes are stored, in the root-only `/etc/AuthApp/<username>.conf`. Online guessing is bounded by `pam_faillock` in the generated PAM config (3 attempts, 15 minute lock), so keep those lines when you adapt it. Failed phone attempts count too, so three tries with the phone off locks the account for 15 minutes (`faillock --user <name> --reset` clears it).
 
-Re-pairing does not need sudo. `./build_pam.sh --install` also installs `spark-pair` and a polkit action that lets any active local session run it:
+Re-pairing does not need sudo, but it does need the re-pair code, otherwise anyone at an unlocked desktop could pair their own phone and invalidate your codes. `./build_pam.sh --install` installs `spark-pair`, a polkit action that lets an active local session launch it as root, and `/etc/pam.d/spark-pair`, the PAM service the tool runs before pairing (faillock plus `pam_authenticator.so repair`, nothing else). Nothing is added to `polkit-1`, so the re-pair code cannot authorise any other polkit action.
    ```bash
    pkexec /usr/local/bin/spark-pair
    ```
-   That is what a user who logged in with a recovery code runs to get a new phone paired and a fresh set of codes.
+   It asks for the re-pair code, always, phone or no phone, and issues a fresh set on success. The code is only replaced by a successful pairing, so a failed attempt can be retried with the same one. A lost phone therefore costs one login code to get in and the re-pair code to pair the replacement. Running it directly as root (`sudo spark-authenticator --setup <user>`) skips the code, since root can delete the config anyway; that is also how a machine paired before re-pair codes existed gets one. If you run out of login codes with no phone, boot a live system and delete `/etc/AuthApp/<username>.conf`, then pair again.
 
 
 The unit tests (frame codec, communications, crypto envelope and recovery codes) can be run with:

@@ -5,8 +5,8 @@
   <vendor>SPARK</vendor>
   <action id="uk.ac.york.spark.pair">
     <description>Pair a phone with SPARK</description>
-    <message>Pair a phone with SPARK (allowed from an active local session)</message>
-    <!-- active local session can re-pair without sudo, single user machines only -->
+    <message>Pair a phone with SPARK</message>
+    <!-- active session may launch it; spark-pair then demands the re-pair code via its own PAM service -->
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
