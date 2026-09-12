@@ -1,0 +1,75 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  pam:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f PAM/PAM.dockerfile -t spark-pam PAM
+      - run: docker run --rm spark-pam
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew assembleDebug testDebugUnitTest
+        working-directory: App
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: App/app/build/outputs/apk/debug/app-debug.apk
+
+  proverif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: Proofs
+          file: Proofs/ProVerif.dockerfile
+          tags: proverif:2.05
+          load: true
+          cache-from: type=gha,scope=proverif
+          cache-to: type=gha,scope=proverif,mode=max
+      - run: ./run-proverif-setup.sh | tee proverif-setup.log
+        working-directory: Proofs
+      - run: ./run-proverif-remote.sh | tee proverif-remote.log
+        working-directory: Proofs
+      - run: |
+          grep '^RESULT' proverif-setup.log  | diff - expected/spark-setup.results
+          grep '^RESULT' proverif-remote.log | diff - expected/spark-remote.results
+        working-directory: Proofs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proverif-logs
+          path: Proofs/proverif-*.log
+
+  easycrypt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: Proofs
+          file: Proofs/Easycrypt.dockerfile
+          tags: easycrypt:latest
+          load: true
+          cache-from: type=gha,scope=easycrypt
+          cache-to: type=gha,scope=easycrypt,mode=max
+      - run: ./run-easycrypt.sh
+        working-directory: Proofs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: easycrypt-log
+          path: Proofs/output.log

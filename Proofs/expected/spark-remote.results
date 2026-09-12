@@ -1,0 +1,6 @@
+RESULT Query secret N [real_or_random] encoded as equivalence is true.
+RESULT secret N is true.
+RESULT inj-event(verifierSuccess(p1,p2,n)) ==> inj-event(authenticatorFinished(p1,p2,n)) is true.
+RESULT event(authenticatorFinished(p1,p2,n)) ==> event(verifierStarted(p1,p2,n)) is true.
+RESULT inj-event(authenticatorFinished(p1,p2,n)) ==> inj-event(verifierStarted(p1,p2,n)) is false.
+RESULT (but event(authenticatorFinished(p1,p2,n)) ==> event(verifierStarted(p1,p2,n)) is true.)
