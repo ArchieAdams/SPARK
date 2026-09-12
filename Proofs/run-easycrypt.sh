@@ -1,4 +1,4 @@
-docker build -f Easycrypt.dockerfile -t easycrypt .
+[ -n "$SPARK_SKIP_DOCKER_BUILD" ] || docker build -f Easycrypt.dockerfile -t easycrypt .
 
 docker run --rm -v "$(pwd)":/artifact easycrypt ./HashCommit.ec 2>&1 | tee output.log
 EXIT_CODE=${PIPESTATUS[0]}

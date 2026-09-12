@@ -2,6 +2,9 @@ name: CI
 
 on: [push, pull_request]
 
+env:
+  SPARK_SKIP_DOCKER_BUILD: 1
+
 jobs:
   pam:
     runs-on: ubuntu-latest
@@ -66,6 +69,7 @@ jobs:
           load: true
           cache-from: type=gha,scope=easycrypt
           cache-to: type=gha,scope=easycrypt,mode=max
+      - run: chmod -R o+w Proofs
       - run: ./run-easycrypt.sh
         working-directory: Proofs
       - uses: actions/upload-artifact@v4
