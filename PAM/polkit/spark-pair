@@ -1,0 +1,4 @@
+#!/bin/sh
+# pkexec /usr/local/bin/spark-pair
+user="$(id -nu "${PKEXEC_UID:-$(id -u)}")"
+exec /usr/local/bin/spark-authenticator --setup "$user"

@@ -54,7 +54,12 @@ mkdir -p "$PROJECT_DIR/pam_config"
 cat > "$PROJECT_DIR/pam_config/authenticator-test" << 'EOF'
 #%PAM-1.0
 # Test PAM configuration for device authenticator
-auth       required pam_authenticator.so
+# faillock: 3 tries then 15 min lock, covers recovery code guessing
+auth       requisite                pam_faillock.so preauth silent deny=3 unlock_time=900
+auth       [success=1 default=bad]  pam_authenticator.so
+auth       [default=die]            pam_faillock.so authfail deny=3 unlock_time=900
+auth       sufficient               pam_faillock.so authsucc deny=3 unlock_time=900
+auth       required                 pam_deny.so
 account    required pam_permit.so
 session    required pam_permit.so
 EOF
@@ -73,6 +78,11 @@ if [ "$DO_INSTALL" -eq 1 ]; then
     echo "Exported PAM symbols:"
     nm -D "$INSTALL_DIR/pam_authenticator.so" | grep "pam_sm" || true
     sudo cp "$PROJECT_DIR/pam_config/authenticator-test" /etc/pam.d/
+    # pkexec /usr/local/bin/spark-pair re-pairs without sudo
+    sudo install -m 0755 "$BUILD_DIR/Authenticator" /usr/local/bin/spark-authenticator
+    sudo install -m 0755 "$PROJECT_DIR/polkit/spark-pair" /usr/local/bin/spark-pair
+    sudo install -m 0644 "$PROJECT_DIR/polkit/uk.ac.york.spark.pair.policy" /usr/share/polkit-1/actions/
+    echo "Installed spark-pair; re-pair with: pkexec /usr/local/bin/spark-pair"
 else
     echo "Skipping install. Use '--install' to install to $INSTALL_DIR."
 fi

@@ -98,7 +98,7 @@ The `PAM` directory contains the verifier side of SPARK: a standalone authentica
 To build it you will need a C compiler, `cmake`, `make`, PAM headers, and the following libraries: OpenSSL, BlueZ, libwebsockets, libcjson and tss2-esys (for the TPM 2.0 monotonic counter). On Debian/Ubuntu:
 
 ```bash
-sudo apt install gcc cmake make libssl-dev libbluetooth-dev libwebsockets-dev libcjson-dev libtss2-dev libpam0g-dev
+sudo apt install gcc cmake make libssl-dev libbluetooth-dev libwebsockets-dev libcjson-dev libtss2-dev libpam0g-dev libcrypt-dev
 ```
 
 Then, from the `PAM` directory:
@@ -113,9 +113,21 @@ Then, from the `PAM` directory:
    ./setup.sh <username>
    ```
    This starts the pairing flow: both devices display an emoji SAS string, and you confirm on the phone that they match.
+   Pairing ends by printing three one-time recovery codes (five EFF Diceware words each). Write them down; the screen is cleared after you press Enter.
+
+#### Recovery codes
+Each code works once, with or without the phone. Type it into the password field at login (SDDM and similar greeters, which hand it over once the phone flow has failed), or at the `Recovery code:` prompt that appears after the phone flow fails (GDM, console, sudo). Using one prints a warning on every later phone login until you re-pair. Re-pairing replaces the whole set. Do not stack `pam_authenticator.so` after a password module: a token set by an earlier module is treated as a recovery code.
+
+Only yescrypt hashes are stored, in the root-only `/etc/AuthApp/<username>.conf`. Online guessing is bounded by `pam_faillock` in the generated PAM config (3 attempts, 15 minute lock), so keep those lines when you adapt it. Failed phone attempts count too, so three tries with the phone off locks the account for 15 minutes (`faillock --user <name> --reset` clears it).
+
+Re-pairing does not need sudo. `./build_pam.sh --install` also installs `spark-pair` and a polkit action that lets any active local session run it:
+   ```bash
+   pkexec /usr/local/bin/spark-pair
+   ```
+   That is what a user who logged in with a recovery code runs to get a new phone paired and a fresh set of codes.
 
 
-The unit tests (frame codec, communications and crypto envelope) can be run with:
+The unit tests (frame codec, communications, crypto envelope and recovery codes) can be run with:
 
 ```bash
 ctest --test-dir build

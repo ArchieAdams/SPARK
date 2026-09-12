@@ -25,6 +25,7 @@
 #include "communication/messages.h"
 #include "config_manager.h"
 #include "cryptography/key_manager.h"
+#include "recovery/recovery.h"
 
 static const char *TAG = "pairing_server";
 
@@ -75,15 +76,60 @@ static int store_phone_pubkey(const char *uuid_str, const uint8_t *der, uint32_t
     return ok ? 0 : -1;
 }
 
+static int sas_auto_approve(void) {
+    const char *env = getenv("AUTHAPP_SAS_APPROVE");
+    return env && (strcasecmp(env, "Y") == 0 || strcmp(env, "1") == 0);
+}
+
 static int terminal_confirm(const char *emoji, void *ctx) {
     (void)ctx;
     printf("\nPairing Emoji: %s\n", emoji);
-    const char *env = getenv("AUTHAPP_SAS_APPROVE");
-    if (env && (strcasecmp(env, "Y") == 0 || strcmp(env, "1") == 0)) return 1;
+    if (sas_auto_approve()) return 1;
     printf("Confirm match? (y/n): ");
     fflush(stdout);
     int ch = getchar();
     return (ch == 'y' || ch == 'Y') ? 1 : 0;
+}
+
+typedef struct {
+    char codes[RECOVERY_CODES][RECOVERY_CODE_MAX];
+    char hashes[RECOVERY_CODES][RECOVERY_HASH_MAX];
+} RecoverySet;
+
+// generate before anything is written so a failure aborts cleanly
+static int prepare_recovery_codes(RecoverySet *r) {
+    for (int i = 0; i < RECOVERY_CODES; i++) {
+        if (recovery_generate_code(r->codes[i], sizeof r->codes[i]) != 0 ||
+            recovery_hash(r->codes[i], r->hashes[i], sizeof r->hashes[i]) != 0) {
+            explicit_bzero(r, sizeof *r);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static int issue_recovery_codes(RecoverySet *r) {
+    const char *hp[RECOVERY_CODES];
+    for (int i = 0; i < RECOVERY_CODES; i++) hp[i] = r->hashes[i];
+    if (config_manager_set_recovery(hp, RECOVERY_CODES) != 0) { explicit_bzero(r, sizeof *r); return -1; }
+
+    printf("\n=== Recovery codes (write these down now) ===\n");
+    printf("Each works once, with or without your phone. Type one into the\n");
+    printf("password field at login. Re-pairing issues a new set.\n\n");
+    for (int i = 0; i < RECOVERY_CODES; i++) printf("  %d. %s\n", i + 1, r->codes[i]);
+    fflush(stdout);
+
+    if (!sas_auto_approve()) {
+        int ch;
+        while ((ch = getchar()) != '\n' && ch != EOF) {}   // leftover from the y/n
+        printf("\nPress Enter once written down (the screen will be cleared): ");
+        fflush(stdout);
+        while ((ch = getchar()) != '\n' && ch != EOF) {}
+        printf("\033[H\033[2J\033[3J");                 // clear + scrollback
+        fflush(stdout);
+    }
+    explicit_bzero(r, sizeof *r);
+    return 0;
 }
 
 // Inquiry + SDP scan to find the phone's BT MAC by its advertised service UUID.
@@ -153,6 +199,14 @@ int pairing_server_run(const char *username) {
         return -1;
     }
 
+    RecoverySet recovery;
+    if (prepare_recovery_codes(&recovery) != 0) {
+        custom_log(LOG_ERR, TAG, "Failed to generate recovery codes");
+        free(pkv);
+        websocket_disconnect();
+        return -1;
+    }
+
     VerifierPairing v;
     memset(&v, 0, sizeof v);
     v.pk_v = pkv;
@@ -175,6 +229,10 @@ int pairing_server_run(const char *username) {
             config_manager_write_device(uuid_str, (int)v.port);
             config_manager_set_device_mac(mac);
             custom_log(LOG_INFO, TAG, "Paired device %s on port %u (BT MAC %s)", uuid_str, v.port, mac);
+            if (issue_recovery_codes(&recovery) != 0) {
+                custom_log(LOG_ERR, TAG, "Failed to issue recovery codes");
+                rc = -1;
+            }
         }
         uint8_t msg[8];
         ssize_t mn = rc == 0 ? msg_encode_sas_confirm(1, msg, sizeof msg)
