@@ -1,6 +1,6 @@
 # Artefact Evaluation Appendix
 
-This is the SEFM'26 artefact evaluation appendix for SPARK. 
+This is the artefact evaluation appendix for SPARK. 
 
 ## A.1 Badge claims
 

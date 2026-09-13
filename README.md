@@ -13,7 +13,7 @@
 ## Overview
 
 SPARK is a research prototype created as part of my University of York BSc Computer Science dissertation. 
-It has since been further refined with the help of my supervisor and co-author Roberto Metere, and is now being prepared for submission to SEFM'26.
+It has since been further refined with the help of my supervisor and co-author Roberto Metere, and is being prepared for publication.
 
 SPARK is comprised of a PAM module and a companion app, which implement a secure challenge-response using the sign-then-encrypt scheme.
 The underlying protocol is formally verified using ProVerif and EasyCrypt.
@@ -23,7 +23,7 @@ The underlying protocol is formally verified using ProVerif and EasyCrypt.
 ## Contents
 This repository contains the source code for the SPARK PAM module and companion app, as well as the formal verification proofs.
 
-- `AE.md`: SEFM'26 artefact evaluation appendix, badge claims and evaluation steps.
+- `AE.md`: artefact evaluation appendix, badge claims and evaluation steps.
 - `quickstart.sh`: runs the Proofs and PAM components end-to-end for a quick sanity check.
 - `Proofs`: ProVerif and EasyCrypt models, Docker scripts.
 - `PAM`: verifier daemon and PAM module (C, cmake), Docker image.
