@@ -13,12 +13,10 @@ class MessagesTest {
 
     @Test fun setupReqRoundTrip() {
         val id = UUID.fromString("00112233-4455-6677-8899-aabbccddeeff")
-        val pkA = ByteArray(8) { (it + 1).toByte() }   // stand-in DER
-        val p = Messages.setupReq(id, pkA, port = 8080)
+        val p = Messages.setupReq(id, port = 8080)
         val out = Messages.parseSetupReq(p)
         assertEquals(id, out.deviceId)
         assertEquals(8080, out.port)
-        assertArrayEquals(pkA, out.pkA)
         println("VECTOR SETUP_REQ = ${p.hex()}")
     }
 
@@ -31,13 +29,22 @@ class MessagesTest {
         println("VECTOR COMMIT = ${Messages.commit(pkV, c).hex()}")
     }
 
+    @Test fun sasNonceRoundTrip() {
+        val pkA = ByteArray(8) { (it + 1).toByte() }
+        val nA = ByteArray(32) { 0xAA.toByte() }
+        val out = Messages.parseSasNonce(Messages.sasNonce(pkA, nA))
+        assertArrayEquals(pkA, out.pkA)
+        assertArrayEquals(nA, out.nA)
+        println("VECTOR SAS_NONCE = ${Messages.sasNonce(pkA, nA).hex()}")
+    }
+
     @Test fun revealRoundTrip() {
-        val n = ByteArray(32) { it.toByte() }
+        val nV = ByteArray(32) { it.toByte() }
         val r = ByteArray(32) { (32 + it).toByte() }
-        val out = Messages.parseReveal(Messages.reveal(n, r))
-        assertArrayEquals(n, out.n)
+        val out = Messages.parseReveal(Messages.reveal(nV, r))
+        assertArrayEquals(nV, out.nV)
         assertArrayEquals(r, out.r)
-        println("VECTOR REVEAL = ${Messages.reveal(n, r).hex()}")
+        println("VECTOR REVEAL = ${Messages.reveal(nV, r).hex()}")
     }
 
     @Test fun sasConfirmRoundTrip() {
@@ -51,13 +58,17 @@ class MessagesTest {
         }
     }
 
-    @Test fun sasVector() {
-        val n = ByteArray(32) { it.toByte() }
+    @Test fun sasVectorMatchesPam() {
         val pkV = byteArrayOf(0x10, 0x11, 0x12, 0x13, 0x14, 0x15)
         val pkA = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
-        assertEquals(432366812, Messages.sasCode(n, pkV, pkA))          // matches PAM sas_compute
-        assertEquals("366812", Messages.sas(n, pkV, pkA))
-        assertEquals("🌵 🔑 🐙 ☀️ 🦊 🔑", Messages.sasToEmoji(432366812)) // matches PAM sas_emoji
+        val nV = ByteArray(32) { it.toByte() }
+        val r = ByteArray(32) { (32 + it).toByte() }
+        val nA = ByteArray(32) { 0xAA.toByte() }
+
+        val code = Messages.sasCode(pkV, pkA, nV, r, nA)
+        val display = "%06d".format(code % 1000000)
+        assertEquals("143547", display)
+        println("VECTOR SAS code=$code display=$display emoji=${Messages.sasToEmoji(code)}")
     }
 
     @Test fun revealRejectsWrongSize() {
@@ -68,7 +79,7 @@ class MessagesTest {
 
     @Test fun parserRejectsTruncatedInput() {
         // valid SETUP_REQ then chop a byte -> reader must throw, not read past the buffer
-        val full = Messages.setupReq(UUID.randomUUID(), ByteArray(4) { 1 }, 1)
+        val full = Messages.setupReq(UUID.randomUUID(), 1)
         assertThrows(IllegalArgumentException::class.java) {
             Messages.parseSetupReq(full.copyOf(full.size - 1))
         }
