@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "connection_manager.h"
 #include "log_manager.h"
@@ -25,6 +26,21 @@ static void stop_inactive_transports(ConnectionType winner) {
     } else if (winner == CONN_BLUETOOTH) {
         websocket_disconnect();
     }
+}
+
+static void *stop_inactive_transports_thread(void *arg) {
+    stop_inactive_transports((ConnectionType)(intptr_t)arg);
+    return NULL;
+}
+
+
+static void stop_inactive_transports_async(ConnectionType winner) {
+    pthread_t tid;
+    if (pthread_create(&tid, NULL, stop_inactive_transports_thread, (void *)(intptr_t)winner) != 0) {
+        stop_inactive_transports(winner);
+        return;
+    }
+    pthread_detach(tid);
 }
 
 static void *attempt_bt(void *arg) {
@@ -97,7 +113,7 @@ bool connection_manager_start_dual(const char *uuid) {
 
     pthread_mutex_lock(&connection_lock);
     if (success) {
-        stop_inactive_transports(active_connection);
+        stop_inactive_transports_async(active_connection);
     } else {
         is_connecting = false;
         bluetooth_service_stop();

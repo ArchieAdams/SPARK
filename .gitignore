@@ -88,3 +88,7 @@ http-client.private.env.json
 .idea/**/copilot.data.migration.*.xml.idea/
 /.idea/editor.xml
 /.idea/vcs.xml
+
+# scripts/measure_latency.sh output
+evaluation/spark_latency_*.csv
+evaluation/spark_latency_*_logs/

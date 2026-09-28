@@ -4,7 +4,6 @@ import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.ByteString.Companion.toByteString
-import java.lang.Thread.sleep
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
@@ -20,6 +19,23 @@ class WebSocketService(
         private const val TAG = "WebSocketService"
         private const val WEBSOCKET_PORT = 8080
         private const val WS_PROTOCOL = "authapp"
+
+        private val trustAllCerts: Array<X509TrustManager> by lazy {
+            arrayOf(object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+            })
+        }
+
+        private val sharedHttpClient: OkHttpClient by lazy {
+            val sslContext = SSLContext.getInstance("TLSv1.3")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+            OkHttpClient.Builder().sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
+                .hostnameVerifier { _, _ -> true }.connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS)
+                .pingInterval(30, TimeUnit.SECONDS).build()
+        }
     }
 
     @Volatile
@@ -29,8 +45,6 @@ class WebSocketService(
     private var isConnecting = false
     private val webSocketLock = Any()
 
-    @Volatile
-    private var httpClient: OkHttpClient? = null
     private var connectionThread: Thread? = null
 
     private var udpListener: UDPBroadcastListener? = null
@@ -59,19 +73,6 @@ class WebSocketService(
     }
 
     private fun connectToWebSocket(ipAddress: String) {
-        // Create SSL context that trusts all certificates
-        val (trustAllCerts, sslContext) = createSslContext()
-
-        // Build OkHttpClient if not already created
-        val client = synchronized(webSocketLock) {
-            if (httpClient == null && sslContext != null) {
-                httpClient = buildHttpClient(sslContext, trustAllCerts)
-            } else {
-                Log.d(TAG, "WebSocket: Reusing existing OkHttpClient")
-            }
-            httpClient
-        }
-
         val request = Request.Builder().url("wss://$ipAddress:$WEBSOCKET_PORT/")
             .header("Sec-WebSocket-Protocol", WS_PROTOCOL).build()
 
@@ -86,8 +87,7 @@ class WebSocketService(
                 clearConnectionState()
             }
         )
-        // Create a new WebSocket connection
-        webSocket = client?.newWebSocket(request, listener)
+        webSocket = sharedHttpClient.newWebSocket(request, listener)
     }
 
     override fun sendBytes(data: ByteArray): Boolean =
@@ -103,15 +103,6 @@ class WebSocketService(
 
         clearConnectionState()
 
-        synchronized(webSocketLock) {
-            try {
-                httpClient?.dispatcher?.executorService?.shutdown()
-            } catch (e: Exception) {
-                Log.d(TAG, "Error shutting down executor", e)
-            }
-            httpClient = null
-        }
-
         try {
             connectionThread?.interrupt()
         } catch (e: Exception) {
@@ -126,7 +117,6 @@ class WebSocketService(
         udpListener?.stopListener() // Stop any existing listener before creating a new one
         udpListener = UDPBroadcastListener(
             onServerDiscovered = { serverIp ->
-                sleep(500)
                 connectToIPAddress(serverIp)
                 udpListener?.stopListener()
             },
@@ -137,26 +127,6 @@ class WebSocketService(
 
     override fun isConnected(): Boolean {
         return webSocket != null
-    }
-
-    private fun buildHttpClient(
-        sslContext: SSLContext, trustAllCerts: Array<X509TrustManager>
-    ): OkHttpClient =
-        OkHttpClient.Builder().sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
-            .hostnameVerifier { _, _ -> true }.connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS)
-            .pingInterval(30, TimeUnit.SECONDS).build()
-
-    private fun createSslContext(): Pair<Array<X509TrustManager>, SSLContext?> {
-        val trustAllCerts = arrayOf<X509TrustManager>(object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        })
-
-        val sslContext = SSLContext.getInstance("TLSv1.3")
-        sslContext.init(null, trustAllCerts, SecureRandom())
-        return Pair(trustAllCerts, sslContext)
     }
 
     private inline fun <T> withWebSocketLock(action: () -> T): T =

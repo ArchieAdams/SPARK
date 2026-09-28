@@ -9,7 +9,7 @@ We claim two badges: **Artefacts Available** and **Artefacts Functional**.
 - **Available**: archived on Zenodo, DOI [10.5281/zenodo.21207792](https://doi.org/10.5281/zenodo.21207792). The GitHub repository is public and requires no login to clone or download.
 - **Functional**: the formal verification results (Table 2 and Theorem 1 in the paper) and the PAM implementation's unit tests are reproducible through the artefact. See A.3.
 
-The empirical latency results (Section 5.3) require an android device in order to replicate and so does the app as it requires (Bluetooth, hardware-backed biometric keystore) not present in the simulator and is excluded from this evaluation; see the README's App section.
+The empirical latency results (Section 5.3) require an android device in order to replicate and so does the app as it requires (Bluetooth, hardware-backed biometric keystore) not present in the simulator and is excluded from this evaluation; see the README's App section. `evaluation/` now documents the measurement methodology and provides the recorded data behind Fig. 4, for readers who want to attempt it on their own paired hardware; it remains outside this artefact's badge claims for the reason above.
 
 We do not claim Reusable. `pam_authenticator.so` is a standard PAM module and could be wired into any PAM-aware service (`sudo`, `sshd`, a display manager) beyond the OS-login case in the paper, with no new code. We omit the claim because demonstrating it needs a paired Android device and we can't guarantee reviewers will have compatible hardware to hand.
 

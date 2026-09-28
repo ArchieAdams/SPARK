@@ -23,32 +23,50 @@ class BluetoothService(
         private const val TAG = "BluetoothService"
         private const val NAME = "SparkAuth"
         private const val MAX_FRAME_SIZE = 1024 * 1024
+
+        private val serverLock = Any()
+        @Volatile private var serverSocket: BluetoothServerSocket? = null
+        @Volatile private var acceptRunning = false
+        @Volatile private var activeInstance: BluetoothService? = null
+
+        private fun ensureServerSocket(adapter: BluetoothAdapter, serviceUuid: UUID): Boolean =
+            synchronized(serverLock) {
+                if (serverSocket != null) return true
+                serverSocket = try {
+                    @Suppress("MissingPermission")
+                    adapter.listenUsingRfcommWithServiceRecord(NAME, serviceUuid)
+                } catch (e: IOException) {
+                    Log.e(TAG, "Failed to open server socket", e)
+                    return false
+                }
+                acceptRunning = true
+                thread(name = "bt-accept") {
+                    try {
+                        while (acceptRunning) {
+                            val socket = serverSocket?.accept() ?: break   // blocks until a phone connects
+                            val target = activeInstance
+                            if (target != null) target.handleConnection(socket)
+                            else try { socket.close() } catch (e: IOException) {}
+                        }
+                    } catch (e: IOException) {
+                        if (acceptRunning) Log.e(TAG, "Accept loop error", e)
+                    }
+                }
+                true
+            }
     }
 
     private val socketLock = Any()
-    private var serverSocket: BluetoothServerSocket? = null
     private var currentSocket: BluetoothSocket? = null
     @Volatile private var isRunning = false
 
     override fun connect() {
         if (isRunning) return
         isRunning = true
-        serverSocket = try {
-            @Suppress("MissingPermission")
-            adapter.listenUsingRfcommWithServiceRecord(NAME, serviceUuid)
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to open server socket", e); isRunning = false; return
-        }
-
-        thread(name = "bt-accept") {
-            try {
-                while (isRunning) {
-                    val socket = serverSocket?.accept() ?: break   // blocks until a phone connects
-                    handleConnection(socket)
-                }
-            } catch (e: IOException) {
-                if (isRunning) Log.e(TAG, "Accept loop error", e)
-            }
+        activeInstance = this
+        if (!ensureServerSocket(adapter, serviceUuid)) {
+            isRunning = false
+            activeInstance = null
         }
     }
 
@@ -93,7 +111,7 @@ class BluetoothService(
     override fun disconnect() {
         isRunning = false
         setConnected(false)
-        closeServerSocket()
+        if (activeInstance === this) activeInstance = null
         closeCurrentSocket()
     }
 
@@ -108,14 +126,10 @@ class BluetoothService(
         if (len <= 0 || len > MAX_FRAME_SIZE) null
         else ByteArray(len).also { input.readFully(it) }
     } catch (e: EOFException) { null }
-    
+
 
     private fun closeCurrentSocket() = synchronized(socketLock) {
         try { currentSocket?.close() } catch (e: IOException) {}
         currentSocket = null
-    }
-    private fun closeServerSocket() {
-        try { serverSocket?.close() } catch (e: IOException) {}
-        serverSocket = null
     }
 }

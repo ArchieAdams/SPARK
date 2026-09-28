@@ -28,6 +28,8 @@ This repository contains the source code for the SPARK PAM module and companion 
 - `Proofs`: ProVerif and EasyCrypt models, Docker scripts.
 - `PAM`: verifier daemon and PAM module (C, cmake), Docker image.
 - `App`: companion Android app (requires a real phone, not covered by `quickstart.sh`).
+- `scripts/measure_latency.sh`: runs N logins via `pamtester` and records per-run transport/latency to a CSV.
+- `evaluation/`: the login latency measurements behind §5.3/Fig. 4 and how to reproduce them on your own paired hardware. Not part of the AE badge claims (see `AE.md`) since it needs a real phone.
 
 Run `./quickstart.sh` from the repo root to check the Proofs and PAM components (Docker required).
 

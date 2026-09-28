@@ -13,6 +13,8 @@
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
+#include <bluetooth/hci.h>
+#include <bluetooth/hci_lib.h>
 #include "sdp_manager.h"
 #include "time_utils.h"
 #include "../../config_manager.h"
@@ -177,6 +179,13 @@ static bool write_message(int s, const char *msg) {
 }
 
 static void ensure_adapter_up(void) {
+    int dev_id = hci_get_route(NULL);
+    if (dev_id < 0) return;
+
+    struct hci_dev_info di;
+    if (hci_devinfo(dev_id, &di) == 0 && hci_test_bit(HCI_UP, &di.flags)) {
+        return;
+    }
     system("hciconfig hci0 up 2>/dev/null");
 }
 
