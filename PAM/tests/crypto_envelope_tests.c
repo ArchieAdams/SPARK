@@ -4,131 +4,100 @@
 #include <string.h>
 #include <stdint.h>
 #include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/x509.h>
+#include <openssl/ec.h>
 
-#define M_LEN 40
-
-static EVP_PKEY *kp_v;  // verifier keypair
-static EVP_PKEY *kp_a;  // authenticator keypair
-
-static EVP_PKEY *gen_rsa(void) {
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+static EVP_PKEY *gen_p256(void) {
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
     TEST_ASSERT_NOT_NULL(ctx);
-    EVP_PKEY_keygen_init(ctx);
-    EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 3072);
+    TEST_ASSERT_EQUAL(1, EVP_PKEY_keygen_init(ctx));
+    TEST_ASSERT_EQUAL(1, EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, NID_X9_62_prime256v1));
     EVP_PKEY *k = NULL;
-    EVP_PKEY_keygen(ctx, &k);
+    TEST_ASSERT_EQUAL(1, EVP_PKEY_keygen(ctx, &k));
     EVP_PKEY_CTX_free(ctx);
     TEST_ASSERT_NOT_NULL(k);
     return k;
 }
 
-// extra = der(first) || der(second)
-static size_t build_extra(EVP_PKEY *first, EVP_PKEY *second, unsigned char *out) {
-    unsigned char *d1 = NULL, *d2 = NULL;
-    int l1 = i2d_PUBKEY(first, &d1);
-    int l2 = i2d_PUBKEY(second, &d2);
-    memcpy(out, d1, l1);
-    memcpy(out + l1, d2, l2);
-    OPENSSL_free(d1);
-    OPENSSL_free(d2);
-    return (size_t) l1 + (size_t) l2;
+static void test_ec_signature_roundtrip(void) {
+    EVP_PKEY *sk = gen_p256();
+    unsigned char msg[] = "spark-ec-test";
+    unsigned char sig[128];
+    size_t sig_len = sizeof(sig);
+    TEST_ASSERT_EQUAL(1, crypto_sign_ec(msg, sizeof(msg) - 1, sk, sig, &sig_len));
+    TEST_ASSERT_EQUAL(1, (int)(sig_len > 0));
+    TEST_ASSERT_EQUAL(1, crypto_verify_ec(msg, sizeof(msg) - 1, sig, sig_len, sk));
+    EVP_PKEY_free(sk);
 }
 
-static void make_M(unsigned char m[M_LEN], uint64_t ctr) {
-    RAND_bytes(m, 32);
-    for (int i = 0; i < 8; i++) m[32 + i] = (unsigned char) (ctr >> (8 * (7 - i)));
-}
+static void test_x25519_aead_roundtrip(void) {
+    EVP_PKEY *a_priv = NULL;
+    EVP_PKEY *b_priv = NULL;
+    unsigned char a_pub[32];
+    unsigned char b_pub[32];
+    TEST_ASSERT_EQUAL(1, crypto_generate_x25519_keypair(&a_priv, a_pub));
+    TEST_ASSERT_EQUAL(1, crypto_generate_x25519_keypair(&b_priv, b_pub));
 
-static void test_roundtrip_recovers_M(void) {
-    unsigned char m[M_LEN];
-    make_M(m, 0x0102030405060708ULL);
+    unsigned char a_secret[32];
+    unsigned char b_secret[32];
+    TEST_ASSERT_EQUAL(1, crypto_derive_x25519_secret(a_priv, b_pub, a_secret));
+    TEST_ASSERT_EQUAL(1, crypto_derive_x25519_secret(b_priv, a_pub, b_secret));
+    TEST_ASSERT_EQUAL_MEMORY(a_secret, b_secret, 32);
 
-    unsigned char extra_c[2048];  // pk_V || pk_A (challenge direction)
-    size_t extra_c_len = build_extra(kp_v, kp_a, extra_c);
+    unsigned char key[32];
+    unsigned char iv[12];
+    unsigned char transcript[] = "transcript-test-data-aad";
+    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv);
 
-    unsigned char wire[4096];
-    size_t wire_len = sizeof(wire);
-    TEST_ASSERT_EQUAL(1, crypto_sign_and_encrypt_with_keys(m, M_LEN, extra_c, extra_c_len,
-                                                           kp_v, kp_a, wire, &wire_len));
-    // 424-byte blob -> two 384-byte OAEP blocks
-    TEST_ASSERT_EQUAL(768, (long) wire_len);
+    unsigned char plaintext[] = "hello spark";
+    unsigned char ciphertext[128];
+    size_t ciphertext_len = sizeof(ciphertext);
+    TEST_ASSERT_EQUAL(1, crypto_aead_encrypt(key, iv, plaintext, sizeof(plaintext) - 1, transcript, sizeof(transcript), ciphertext, &ciphertext_len));
 
-    unsigned char out[256];
-    size_t out_len = sizeof(out);
-    TEST_ASSERT_EQUAL(1, crypto_decrypt_and_verify_with_keys(wire, wire_len, extra_c, extra_c_len,
-                                                             kp_a, kp_v, out, &out_len));
-    TEST_ASSERT_EQUAL(M_LEN, (long) out_len);
-    TEST_ASSERT_EQUAL_MEMORY(m, out, M_LEN);
-}
+    unsigned char decrypted[128];
+    size_t decrypted_len = sizeof(decrypted);
+    TEST_ASSERT_EQUAL(1, crypto_aead_decrypt(key, iv, ciphertext, ciphertext_len, transcript, sizeof(transcript), decrypted, &decrypted_len));
+    TEST_ASSERT_EQUAL(sizeof(plaintext) - 1, decrypted_len);
+    TEST_ASSERT_EQUAL_MEMORY(plaintext, decrypted, decrypted_len);
 
-static void test_wrong_identity_order_fails(void) {
-    unsigned char m[M_LEN];
-    make_M(m, 1);
-
-    unsigned char extra_c[2048], extra_swapped[2048];
-    size_t extra_c_len = build_extra(kp_v, kp_a, extra_c);          // signed as pk_V||pk_A
-    size_t extra_s_len = build_extra(kp_a, kp_v, extra_swapped);    // verified as pk_A||pk_V
-
-    unsigned char wire[4096];
-    size_t wire_len = sizeof(wire);
-    TEST_ASSERT_EQUAL(1, crypto_sign_and_encrypt_with_keys(m, M_LEN, extra_c, extra_c_len,
-                                                           kp_v, kp_a, wire, &wire_len));
-
-    unsigned char out[256];
-    size_t out_len = sizeof(out);
-    // Same ciphertext, signature must not verify.
-    TEST_ASSERT_EQUAL(0, crypto_decrypt_and_verify_with_keys(wire, wire_len, extra_swapped, extra_s_len,
-                                                             kp_a, kp_v, out, &out_len));
+    EVP_PKEY_free(a_priv);
+    EVP_PKEY_free(b_priv);
 }
 
 static void test_tampered_ciphertext_fails(void) {
-    unsigned char m[M_LEN];
-    make_M(m, 2);
+    EVP_PKEY *a_priv = NULL;
+    EVP_PKEY *b_priv = NULL;
+    unsigned char a_pub[32];
+    unsigned char b_pub[32];
+    TEST_ASSERT_EQUAL(1, crypto_generate_x25519_keypair(&a_priv, a_pub));
+    TEST_ASSERT_EQUAL(1, crypto_generate_x25519_keypair(&b_priv, b_pub));
 
-    unsigned char extra_c[2048];
-    size_t extra_c_len = build_extra(kp_v, kp_a, extra_c);
+    unsigned char a_secret[32];
+    TEST_ASSERT_EQUAL(1, crypto_derive_x25519_secret(a_priv, b_pub, a_secret));
 
-    unsigned char wire[4096];
-    size_t wire_len = sizeof(wire);
-    TEST_ASSERT_EQUAL(1, crypto_sign_and_encrypt_with_keys(m, M_LEN, extra_c, extra_c_len,
-                                                           kp_v, kp_a, wire, &wire_len));
-    wire[10] ^= 0xFF;  // corrupt a byte in the first block
+    unsigned char key[32];
+    unsigned char iv[12];
+    unsigned char transcript[] = "transcript-test-data-aad";
+    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv);
 
-    unsigned char out[256];
-    size_t out_len = sizeof(out);
-    TEST_ASSERT_EQUAL(0, crypto_decrypt_and_verify_with_keys(wire, wire_len, extra_c, extra_c_len,
-                                                             kp_a, kp_v, out, &out_len));
-}
+    unsigned char plaintext[] = "hello spark";
+    unsigned char ciphertext[128];
+    size_t ciphertext_len = sizeof(ciphertext);
+    TEST_ASSERT_EQUAL(1, crypto_aead_encrypt(key, iv, plaintext, sizeof(plaintext) - 1, transcript, sizeof(transcript), ciphertext, &ciphertext_len));
+    ciphertext[0] ^= 0xFF;
 
-// Authenticator-side counter gate: accept iff ctr_recv > ctr_A, then adopt it.
-static int counter_accept(uint64_t recv, uint64_t *stored) {
-    if (recv <= *stored) return 0;
-    *stored = recv;
-    return 1;
-}
+    unsigned char decrypted[128];
+    size_t decrypted_len = sizeof(decrypted);
+    TEST_ASSERT_EQUAL(0, crypto_aead_decrypt(key, iv, ciphertext, ciphertext_len, transcript, sizeof(transcript), decrypted, &decrypted_len));
 
-static void test_counter_monotonic(void) {
-    uint64_t stored = 0;
-    TEST_ASSERT_EQUAL(1, counter_accept(1, &stored));   // first login
-    TEST_ASSERT_EQUAL(1, (long) stored);
-    TEST_ASSERT_EQUAL(0, counter_accept(1, &stored));   // replay of same M
-    TEST_ASSERT_EQUAL(1, counter_accept(5, &stored));   // forward jump tolerated
-    TEST_ASSERT_EQUAL(0, counter_accept(4, &stored));   // stale
-    TEST_ASSERT_EQUAL(5, (long) stored);
+    EVP_PKEY_free(a_priv);
+    EVP_PKEY_free(b_priv);
 }
 
 int main(void) {
     UnityBegin("crypto_envelope_tests");
-    kp_v = gen_rsa();
-    kp_a = gen_rsa();
-    RUN_TEST(test_roundtrip_recovers_M);
-    RUN_TEST(test_wrong_identity_order_fails);
+    RUN_TEST(test_ec_signature_roundtrip);
+    RUN_TEST(test_x25519_aead_roundtrip);
     RUN_TEST(test_tampered_ciphertext_fails);
-    RUN_TEST(test_counter_monotonic);
-    EVP_PKEY_free(kp_v);
-    EVP_PKEY_free(kp_a);
     UnityEnd();
     return UnityTestsFailed == 0 ? 0 : 1;
 }

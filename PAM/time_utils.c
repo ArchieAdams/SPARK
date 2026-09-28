@@ -4,7 +4,8 @@
 #include <time.h>
 
 void sleep_ms(long ms) {
-    if (ms <= 0) return;
+    if (ms <= 0)
+        return;
 
     struct timespec ts;
     ts.tv_sec = ms / 1000;

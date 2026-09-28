@@ -13,11 +13,9 @@ The empirical latency results (Section 5.3) require an android device in order t
 
 We do not claim Reusable. `pam_authenticator.so` is a standard PAM module and could be wired into any PAM-aware service (`sudo`, `sshd`, a display manager) beyond the OS-login case in the paper, with no new code. We omit the claim because demonstrating it needs a paired Android device and we can't guarantee reviewers will have compatible hardware to hand.
 
-### Known limitation: counter rollback
+### Known limitation: EC refresh
 
-The paper's Limitations paragraph notes that without StrongBox, the authenticator's replay counter (`ctr_A`) isn't rollback-resistant. This affects `Proofs/spark-remote.pv`'s benign non-injective query only (F5): a privileged process could roll `ctr_A` back and get the authenticator to re-prompt for an already-seen challenge. It does not affect F3, the property that actually gates the unlock. The verified model never relies on the counter for this guarantee in the first place: `spark-remote.pv` abstracts the counter away entirely, and the verifier's acceptance check depends only on the fresh nonce `N` it generated for that session (`spark-remote.pv:68`), so a replayed old signature can never satisfy a new login attempt regardless of counter state. The model's own comment (`spark-remote.pv:107-114`) makes the same point about the repeated-prompt case: it "is not an actual attack to the authentication," since a verifier who isn't listening anymore won't accept it.
-
-The same rollback also lets a privileged process set `ctr_A` to an arbitrarily high value, blocking all future logins from that authenticator. This is a denial-of-service, not an authentication bypass, and is resolved by re-pairing: `SetupService.clearConfig()` wipes the counter along with the key pair and pairing state.
+The app/PAM implementation now relies on the verifier nonce and ephemeral X25519 exchange for freshness. The proof model is unchanged for now and can be updated separately.
 
 ### Functional outcomes
 

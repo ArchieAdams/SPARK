@@ -35,15 +35,21 @@ fun bytesToUuid(b: ByteArray): UUID = ByteBuffer.wrap(b).let { UUID(it.long, it.
 
 
 object Messages {
+    const val X25519_PUBLIC_KEY_BYTES = 32
+    const val AUTH_NONCE_BYTES = 32
+    const val NONCE = 32
+    const val R = 32
+    const val COMMIT_HASH = 32  // SHA-256
 
-    // SETUP_REQ (A->V): deviceId[16] ‖ port[4] ‖ len(pkA) ‖ pkA(DER)
-    fun setupReq(deviceId: UUID, pkA: ByteArray, port: Int): ByteArray =
-        PayloadWriter().bytes(deviceId.toBytes16()).int(port).lenBytes(pkA).build()
 
-    data class SetupReq(val deviceId: UUID, val port: Int, val pkA: ByteArray)
+    // SETUP_REQ (A->V): deviceId[16] ‖ port[4]
+    fun setupReq(deviceId: UUID, port: Int): ByteArray =
+        PayloadWriter().bytes(deviceId.toBytes16()).int(port).build()
+
+    data class SetupReq(val deviceId: UUID, val port: Int)
 
     fun parseSetupReq(p: ByteArray): SetupReq = PayloadReader(p).let {
-        SetupReq(bytesToUuid(it.bytes(16)), it.int(), it.lenBytes())
+        SetupReq(bytesToUuid(it.bytes(16)), it.int())
     }
 
     // COMMIT (V->A): len(pkV) ‖ pkV(DER) ‖ c[32]   (c = SHA-256(N‖r))
@@ -56,13 +62,23 @@ object Messages {
         Commit(it.lenBytes(), it.bytes(COMMIT_HASH))
     }
 
-    // REVEAL (V->A): N[32] ‖ r[32]
-    fun reveal(n: ByteArray, r: ByteArray): ByteArray {
-        require(n.size == NONCE && r.size == R) { "reveal: N and r must be $NONCE/$R bytes" }
-        return PayloadWriter().bytes(n).bytes(r).build()
+    // SAS_NONCE (A->V): len(pkA) ‖ pkA(DER) ‖ nA[32]
+    fun sasNonce(pkA: ByteArray, nA: ByteArray): ByteArray =
+        PayloadWriter().lenBytes(pkA).bytes(nA).build()
+
+    data class SasNonce(val pkA: ByteArray, val nA: ByteArray)
+
+    fun parseSasNonce(p: ByteArray): SasNonce = PayloadReader(p).let {
+        SasNonce(it.lenBytes(), it.bytes(NONCE))
     }
 
-    data class Reveal(val n: ByteArray, val r: ByteArray)
+    // REVEAL (V->A): nV[32] ‖ r[32]
+    fun reveal(nV: ByteArray, r: ByteArray): ByteArray {
+        require(nV.size == NONCE && r.size == R) { "reveal: nV and r must be $NONCE/$R bytes" }
+        return PayloadWriter().bytes(nV).bytes(r).build()
+    }
+
+    data class Reveal(val nV: ByteArray, val r: ByteArray)
 
     fun parseReveal(p: ByteArray): Reveal = PayloadReader(p).let {
         Reveal(it.bytes(NONCE), it.bytes(R))
@@ -77,18 +93,18 @@ object Messages {
     fun parseAbort(p: ByteArray): AbortReason =
         AbortReason.fromCode(if (p.isEmpty()) -1 else p[0].toInt())
 
-    // SAS code = SHA-256( lp(N) ‖ lp(pkV) ‖ lp(pkA) ), first 4 bytes BE, masked to 31 bits.
-    fun sasCode(n: ByteArray, pkV: ByteArray, pkA: ByteArray): Int {
+    // SAS code = SHA-256( lp(pkV) ‖ lp(pkA) ‖ lp(nV) ‖ lp(r) ‖ lp(nA) ), first 4 bytes BE, masked to 31 bits.
+    fun sasCode(pkV: ByteArray, pkA: ByteArray, nV: ByteArray, r: ByteArray, nA: ByteArray): Int {
         val md = MessageDigest.getInstance("SHA-256")
-        listOf(n, pkV, pkA).forEach {
+        listOf(pkV, pkA, nV, r, nA).forEach {
             md.update(ByteBuffer.allocate(4).putInt(it.size).array())
             md.update(it)
         }
         return ByteBuffer.wrap(md.digest()).int and 0x7FFFFFFF
     }
 
-    fun sas(n: ByteArray, pkV: ByteArray, pkA: ByteArray): String =
-        String.format(Locale.US, "%06d", sasCode(n, pkV, pkA) % 1_000_000)
+    fun sasToEmoji(code: Int): String =
+        (25 downTo 0 step 5).joinToString(" ") { EMOJI[(code shr it) and 0x1F] }
 
     private val EMOJI = arrayOf(
         "🎉", "🎱", "🤖", "👻", "🐶", "📱", "🦊", "🐼",
@@ -96,13 +112,6 @@ object Messages {
         "🍕", "🚗", "🚀", "🌈", "🧲", "🔥", "❄️", "🐷",
         "🌙", "☀️", "🎈", "🎁", "🔑", "🍄", "💎", "🎯"
     )
-
-    fun sasToEmoji(code: Int): String =
-        (25 downTo 0 step 5).joinToString(" ") { EMOJI[(code shr it) and 0x1F] }
-
-    const val NONCE = 32
-    const val R = 32
-    const val COMMIT_HASH = 32  // SHA-256
 }
 
 enum class AbortReason(val code: Int) {

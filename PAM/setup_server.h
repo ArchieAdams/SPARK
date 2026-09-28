@@ -6,4 +6,3 @@ int setup_server_is_done(void);
 int setup_server_result(void);
 
 #endif // SETUP_SERVER_H
-

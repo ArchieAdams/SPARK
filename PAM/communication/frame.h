@@ -24,6 +24,11 @@ typedef enum {
     MSG_RESPONSE=0x06,
     MSG_PING=0x07,
     MSG_ABORT=0x08,
+    MSG_AUTH_EPH_V=0x09,
+    MSG_AUTH_EPH_A=0x0A,
+    MSG_AUTH_STEP3=0x0B,
+    MSG_AUTH_STEP4=0x0C,
+    MSG_SAS_NONCE=0x0D,
 } MsgType;
 
 typedef enum {

@@ -1,52 +1,65 @@
 #include "pairing_server.h"
 
+#include <arpa/inet.h>
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/hci.h>
+#include <bluetooth/hci_lib.h>
+#include <bluetooth/rfcomm.h>
+#include <bluetooth/sdp.h>
+#include <bluetooth/sdp_lib.h>
+#include <log_manager.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <syslog.h>
-#include <arpa/inet.h>
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/rfcomm.h>
-#include <bluetooth/sdp.h>
-#include <bluetooth/sdp_lib.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_lib.h>
-#include <openssl/pem.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <log_manager.h>
+#include <unistd.h>
 
-#include "communication/websocket/websocket_service.h"
-#include "communication/pairing.h"
 #include "communication/channel.h"
 #include "communication/messages.h"
+#include "communication/pairing.h"
+#include "communication/websocket/websocket_service.h"
 #include "config_manager.h"
 #include "cryptography/key_manager.h"
 #include "recovery/recovery.h"
 
 static const char *TAG = "pairing_server";
 
-#define PKI_DIR  "/etc/AuthApp/pki"
-#define PC_PRIV  PKI_DIR "/pc.key"
-#define PC_PUB   PKI_DIR "/pc.pub"
+#define PKI_DIR "/etc/AuthApp/pki"
+#define PC_HANDLE PKI_DIR "/pc.handle"
+#define PC_PUB PKI_DIR "/pc.pub"
 
 static int load_or_gen_pkv_der(uint8_t **der_out, int *der_len) {
-    if (access(PC_PRIV, F_OK) != 0) {
+    if (access(PC_HANDLE, F_OK) != 0) {
         mkdir("/etc/AuthApp", 0755);
         mkdir(PKI_DIR, 0700);
-        if (!key_manager_generate_rsa_keypair(PC_PRIV, PC_PUB)) return -1;
+        if (!key_manager_generate_ec_keypair(PC_HANDLE, PC_PUB))
+            return -1;
     }
     EVP_PKEY *k = NULL;
-    key_manager_load_public_key(PC_PUB, &k);
-    if (!k) return -1;
+    if (!key_manager_load_public_key(PC_PUB, &k)) {
+        mkdir("/etc/AuthApp", 0755);
+        mkdir(PKI_DIR, 0700);
+        if (!key_manager_generate_ec_keypair(PC_HANDLE, PC_PUB))
+            return -1;
+        if (!key_manager_load_public_key(PC_PUB, &k))
+            return -1;
+    }
 
     int len = i2d_PUBKEY(k, NULL);
-    if (len <= 0) { key_manager_free_key(k); return -1; }
+    if (len <= 0) {
+        key_manager_free_key(k);
+        return -1;
+    }
     uint8_t *buf = malloc(len);
-    if (!buf) { key_manager_free_key(k); return -1; }
+    if (!buf) {
+        key_manager_free_key(k);
+        return -1;
+    }
     uint8_t *p = buf;
     i2d_PUBKEY(k, &p);
     key_manager_free_key(k);
@@ -56,20 +69,23 @@ static int load_or_gen_pkv_der(uint8_t **der_out, int *der_len) {
 }
 
 static void uuid16_to_str(const uint8_t id[16], char out[37]) {
-    snprintf(out, 37,
-             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-             id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7],
-             id[8], id[9], id[10], id[11], id[12], id[13], id[14], id[15]);
+    snprintf(out, 37, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", id[0],
+             id[1], id[2], id[3], id[4], id[5], id[6], id[7], id[8], id[9], id[10], id[11], id[12],
+             id[13], id[14], id[15]);
 }
 
 static int store_phone_pubkey(const char *uuid_str, const uint8_t *der, uint32_t len) {
     const uint8_t *p = der;
     EVP_PKEY *k = d2i_PUBKEY(NULL, &p, (long)len);
-    if (!k) return -1;
+    if (!k)
+        return -1;
     char path[512];
     snprintf(path, sizeof path, PKI_DIR "/%s.pub", uuid_str);
     FILE *f = fopen(path, "wb");
-    if (!f) { EVP_PKEY_free(k); return -1; }
+    if (!f) {
+        EVP_PKEY_free(k);
+        return -1;
+    }
     int ok = PEM_write_PUBKEY(f, k);
     fclose(f);
     EVP_PKEY_free(k);
@@ -84,7 +100,8 @@ static int sas_auto_approve(void) {
 static int terminal_confirm(const char *emoji, void *ctx) {
     (void)ctx;
     printf("\nPairing Emoji: %s\n", emoji);
-    if (sas_auto_approve()) return 1;
+    if (sas_auto_approve())
+        return 1;
     printf("Confirm match? (y/n): ");
     fflush(stdout);
     int ch = getchar();
@@ -92,7 +109,7 @@ static int terminal_confirm(const char *emoji, void *ctx) {
 }
 
 typedef struct {
-    char codes[RECOVERY_CODES + 1][RECOVERY_CODE_MAX];    // last one is the re-pair code
+    char codes[RECOVERY_CODES + 1][RECOVERY_CODE_MAX]; // last one is the re-pair code
     char hashes[RECOVERY_CODES + 1][RECOVERY_HASH_MAX];
 } RecoverySet;
 
@@ -110,23 +127,31 @@ static int prepare_recovery_codes(RecoverySet *r) {
 
 static int issue_recovery_codes(RecoverySet *r) {
     const char *hp[RECOVERY_CODES];
-    for (int i = 0; i < RECOVERY_CODES; i++) hp[i] = r->hashes[i];
-    if (config_manager_set_recovery(hp, RECOVERY_CODES, r->hashes[RECOVERY_CODES]) != 0) { explicit_bzero(r, sizeof *r); return -1; }
+    for (int i = 0; i < RECOVERY_CODES; i++)
+        hp[i] = r->hashes[i];
+    if (config_manager_set_recovery(hp, RECOVERY_CODES, r->hashes[RECOVERY_CODES]) != 0) {
+        explicit_bzero(r, sizeof *r);
+        return -1;
+    }
 
     printf("\n=== Recovery codes (write these down now) ===\n");
     printf("Login codes: each works once in the password field at login.\n");
-    for (int i = 0; i < RECOVERY_CODES; i++) printf("  %d. %s\n", i + 1, r->codes[i]);
-    printf("Re-pair code: required by 'pkexec /usr/local/bin/spark-pair'. Re-pairing issues a fresh set.\n");
+    for (int i = 0; i < RECOVERY_CODES; i++)
+        printf("  %d. %s\n", i + 1, r->codes[i]);
+    printf("Re-pair code: required by 'pkexec /usr/local/bin/spark-pair'. Re-pairing issues a "
+           "fresh set.\n");
     printf("  %s\n", r->codes[RECOVERY_CODES]);
     fflush(stdout);
 
     if (!sas_auto_approve()) {
         int ch;
-        while ((ch = getchar()) != '\n' && ch != EOF) {}   // leftover from the y/n
+        while ((ch = getchar()) != '\n' && ch != EOF) {
+        } // leftover from the y/n
         printf("\nPress Enter once written down (the screen will be cleared): ");
         fflush(stdout);
-        while ((ch = getchar()) != '\n' && ch != EOF) {}
-        printf("\033[H\033[2J\033[3J");                 // clear + scrollback
+        while ((ch = getchar()) != '\n' && ch != EOF) {
+        }
+        printf("\033[H\033[2J\033[3J"); // clear + scrollback
         fflush(stdout);
     }
     explicit_bzero(r, sizeof *r);
@@ -137,11 +162,15 @@ static int issue_recovery_codes(RecoverySet *r) {
 static int discover_bt_mac(const char *uuid_str, char *out_mac) {
     int dev_id = hci_get_route(NULL);
     int sock = hci_open_dev(dev_id);
-    if (sock < 0) return -1;
+    if (sock < 0)
+        return -1;
 
     inquiry_info *ii = NULL;
     int n = hci_inquiry(dev_id, 8, 32, NULL, &ii, IREQ_CACHE_FLUSH);
-    if (n < 0) { close(sock); return -1; }
+    if (n < 0) {
+        close(sock);
+        return -1;
+    }
 
     int found = -1;
     for (int i = 0; i < n; i++) {
@@ -149,21 +178,25 @@ static int discover_bt_mac(const char *uuid_str, char *out_mac) {
         ba2str(&ii[i].bdaddr, addr_str);
 
         sdp_session_t *s = sdp_connect(BDADDR_ANY, &ii[i].bdaddr, SDP_RETRY_IF_BUSY);
-        if (!s) continue;
+        if (!s)
+            continue;
 
         uint8_t u[16];
         unsigned int b[16];
         if (sscanf(uuid_str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                   &b[0], &b[1], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7],
-                   &b[8], &b[9], &b[10], &b[11], &b[12], &b[13], &b[14], &b[15]) == 16) {
-            for (int j = 0; j < 16; j++) u[j] = (uint8_t)b[j];
-            uuid_t svc; sdp_uuid128_create(&svc, u);
+                   &b[0], &b[1], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], &b[10],
+                   &b[11], &b[12], &b[13], &b[14], &b[15]) == 16) {
+            for (int j = 0; j < 16; j++)
+                u[j] = (uint8_t)b[j];
+            uuid_t svc;
+            sdp_uuid128_create(&svc, u);
             sdp_list_t *search = sdp_list_append(NULL, &svc);
             uint32_t range = 0x0000ffff;
             sdp_list_t *attrid = sdp_list_append(NULL, &range);
             sdp_list_t *resp = NULL;
 
-            if (sdp_service_search_attr_req(s, search, SDP_ATTR_REQ_RANGE, attrid, &resp) == 0 && resp) {
+            if (sdp_service_search_attr_req(s, search, SDP_ATTR_REQ_RANGE, attrid, &resp) == 0 &&
+                resp) {
                 strcpy(out_mac, addr_str);
                 found = 0;
                 sdp_list_free(resp, (sdp_free_func_t)sdp_record_free);
@@ -172,7 +205,8 @@ static int discover_bt_mac(const char *uuid_str, char *out_mac) {
             sdp_list_free(attrid, NULL);
         }
         sdp_close(s);
-        if (found == 0) break;
+        if (found == 0)
+            break;
     }
     free(ii);
     close(sock);
@@ -192,7 +226,8 @@ int pairing_server_run(const char *username) {
     websocket_connect();
 
     int i;
-    for (i = 0; i < 600 && !websocket_has_client(); i++) usleep(100000);
+    for (i = 0; i < 600 && !websocket_has_client(); i++)
+        usleep(100000);
     if (!websocket_has_client()) {
         custom_log(LOG_ERR, TAG, "Pairing timed out waiting for phone");
         free(pkv);
@@ -229,7 +264,8 @@ int pairing_server_run(const char *username) {
         } else {
             config_manager_write_device(uuid_str, (int)v.port);
             config_manager_set_device_mac(mac);
-            custom_log(LOG_INFO, TAG, "Paired device %s on port %u (BT MAC %s)", uuid_str, v.port, mac);
+            custom_log(LOG_INFO, TAG, "Paired device %s on port %u (BT MAC %s)", uuid_str, v.port,
+                       mac);
             if (issue_recovery_codes(&recovery) != 0) {
                 custom_log(LOG_ERR, TAG, "Failed to issue recovery codes");
                 rc = -1;

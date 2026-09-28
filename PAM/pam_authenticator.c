@@ -1,26 +1,28 @@
 #define PAM_SM_AUTH
 #include <fcntl.h>
 #include <pwd.h>
-#include <sys/file.h>
+#include <security/pam_appl.h>
+#include <security/pam_ext.h>
+#include <security/pam_modules.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/file.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-#include <syslog.h>
-#include <security/pam_appl.h>
-#include <security/pam_modules.h>
-#include <security/pam_ext.h>
 
 #include "authenticator.h"
 #include "config_manager.h"
 #include "log_manager.h"
 #include "recovery/recovery.h"
 
-static const char* TAG = "pam_authenticator";
+static const char *TAG = "pam_authenticator";
 
-// repair = the spark-pair service: verify the re-pair code only, no writes (a successful pairing replaces it)
+// repair = the spark-pair service: verify the re-pair code only, no writes (a successful pairing
+// replaces it)
 static int try_repair(const char *username, const char *code) {
-    if (code && *code && config_manager_repair_hash() && recovery_verify(code, config_manager_repair_hash())) {
+    if (code && *code && config_manager_repair_hash() &&
+        recovery_verify(code, config_manager_repair_hash())) {
         syslog(LOG_NOTICE, "pam_authenticator: re-pair code accepted for %s", username);
         return PAM_SUCCESS;
     }
@@ -30,43 +32,54 @@ static int try_repair(const char *username, const char *code) {
 
 // flock so two logins can't burn the same code
 static int try_recovery(pam_handle_t *pamh, const char *username, const char *code) {
-    if (!code || !*code) return PAM_AUTH_ERR;
+    if (!code || !*code)
+        return PAM_AUTH_ERR;
     int rc = PAM_AUTH_ERR;
     int lock = open("/etc/AuthApp/.recovery.lock", O_RDONLY | O_CREAT | O_CLOEXEC, 0600);
     if (lock < 0 || flock(lock, LOCK_EX) != 0 || load_config() != 0) {
         syslog(LOG_ERR, "pam_authenticator: could not lock/reload config for %s", username);
-        if (lock >= 0) close(lock);
+        if (lock >= 0)
+            close(lock);
         return PAM_AUTH_ERR;
     }
     for (int i = 0; i < config_manager_recovery_count(); i++) {
-        if (!recovery_verify(code, config_manager_recovery_hash(i))) continue;
+        if (!recovery_verify(code, config_manager_recovery_hash(i)))
+            continue;
         if (config_manager_recovery_consume(i) != 0) {
-            syslog(LOG_ERR, "pam_authenticator: recovery code matched for %s but could not be consumed; refusing", username);
+            syslog(LOG_ERR,
+                   "pam_authenticator: recovery code matched for %s but could not be consumed; "
+                   "refusing",
+                   username);
             break;
         }
         int left = config_manager_recovery_count();
         syslog(LOG_NOTICE, "pam_authenticator: login code used for %s (%d left)", username, left);
         if (left == 0)
-            pam_info(pamh, "SPARK: that was your last login code. Re-pair now with 'pkexec /usr/local/bin/spark-pair'.");
+            pam_info(pamh, "SPARK: that was your last login code. Re-pair now with 'pkexec "
+                           "/usr/local/bin/spark-pair'.");
         else
-            pam_info(pamh, "SPARK: login code accepted, %d left. Re-pair soon to issue new codes.", left);
+            pam_info(pamh, "SPARK: login code accepted, %d left. Re-pair soon to issue new codes.",
+                     left);
         rc = PAM_SUCCESS;
         break;
     }
-    if (rc != PAM_SUCCESS) syslog(LOG_WARNING, "pam_authenticator: recovery code rejected for %s", username);
+    if (rc != PAM_SUCCESS)
+        syslog(LOG_WARNING, "pam_authenticator: recovery code rejected for %s", username);
     close(lock);
     return rc;
 }
 
 static void warn_if_recovery_used(pam_handle_t *pamh) {
     long used = config_manager_recovery_used();
-    if (!used) return;
+    if (!used)
+        return;
     char when[32];
     time_t t = (time_t)used;
     struct tm tm;
     if (!localtime_r(&t, &tm) || strftime(when, sizeof when, "%Y-%m-%d %H:%M", &tm) == 0)
         snprintf(when, sizeof when, "%ld", used);
-    pam_info(pamh, "SPARK: a recovery code was used on %s. If that was not you, re-pair now.", when);
+    pam_info(pamh, "SPARK: a recovery code was used on %s. If that was not you, re-pair now.",
+             when);
 }
 
 static int authenticate_user(pam_handle_t *pamh, const char *username, int repair) {
@@ -83,16 +96,20 @@ static int authenticate_user(pam_handle_t *pamh, const char *username, int repai
     // re-pairing always needs the re-pair code, never the phone
     if (repair) {
         if (!config_manager_repair_hash()) {
-            pam_info(pamh, "SPARK: no re-pair code on file for %s. Run 'sudo spark-authenticator --setup %s' once.", username, username);
+            pam_info(pamh,
+                     "SPARK: no re-pair code on file for %s. Run 'sudo spark-authenticator --setup "
+                     "%s' once.",
+                     username, username);
             return PAM_AUTHINFO_UNAVAIL;
         }
-        if (pam_get_authtok(pamh, PAM_AUTHTOK, &tok, "Re-pair code: ") != PAM_SUCCESS) return PAM_AUTH_ERR;
+        if (pam_get_authtok(pamh, PAM_AUTHTOK, &tok, "Re-pair code: ") != PAM_SUCCESS)
+            return PAM_AUTH_ERR;
         return try_repair(username, tok);
     }
 
     int have_codes = config_manager_recovery_count() > 0;
-    if (have_codes &&
-        pam_get_item(pamh, PAM_AUTHTOK, (const void **)&tok) == PAM_SUCCESS && tok && *tok) {
+    if (have_codes && pam_get_item(pamh, PAM_AUTHTOK, (const void **)&tok) == PAM_SUCCESS && tok &&
+        *tok) {
         return try_recovery(pamh, username, tok);
     }
 
@@ -109,12 +126,14 @@ static int authenticate_user(pam_handle_t *pamh, const char *username, int repai
         return PAM_AUTH_ERR;
     }
 
-    syslog(LOG_WARNING, "pam_authenticator: Failure for %s: %s",
-           username, authenticator_result_to_string(result));
+    syslog(LOG_WARNING, "pam_authenticator: Failure for %s: %s", username,
+           authenticator_result_to_string(result));
 
     // phone failed, ask for a recovery code
     if (have_codes) {
-        pam_info(pamh, "SPARK: phone unavailable. Enter a login code (five words), or press Enter to cancel.");
+        pam_info(
+            pamh,
+            "SPARK: phone unavailable. Enter a login code (five words), or press Enter to cancel.");
         if (pam_get_authtok(pamh, PAM_AUTHTOK, &tok, "Login code: ") == PAM_SUCCESS)
             return try_recovery(pamh, username, tok);
     }
@@ -132,12 +151,24 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     int repair = 0;
-    for (int i = 0; i < argc; i++) if (strcmp(argv[i], "repair") == 0) repair = 1;
+    for (int i = 0; i < argc; i++)
+        if (strcmp(argv[i], "repair") == 0)
+            repair = 1;
     return authenticate_user(pamh, username, repair);
 }
 
-PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) { return PAM_SUCCESS; }
-PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) { return PAM_SUCCESS; }
-PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv) { return PAM_SUCCESS; }
-PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv) { return PAM_SUCCESS; }
-PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv) { return PAM_SUCCESS; }
+PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}
+PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}
+PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}
+PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}
+PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}

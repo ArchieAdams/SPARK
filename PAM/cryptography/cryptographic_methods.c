@@ -1,253 +1,158 @@
 #include "cryptographic_methods.h"
-
-#include <stdlib.h>
+#include <openssl/evp.h>
+#include <openssl/kdf.h>
+#include <openssl/rand.h>
 #include <string.h>
-#include <openssl/rsa.h>
-#include <sys/syslog.h>
 
-#include "../log_manager.h"
-
-static const char *TAG = "crypto_methods";
-#define RSA_MAX_PLAINTEXT_SIZE 318
-#define OAEP_OVERHEAD 66  // 2*SHA-256(32) + 2; OAEP-SHA256 max plaintext = keysize - 66
-
-static int
-crypto_sign_message(const unsigned char *message, size_t message_len, EVP_PKEY *private_key,
-                    unsigned char *signature, size_t *signature_len) {
-    if (!message || !private_key || !signature || !signature_len) return 0;
+int crypto_sign_ec(const unsigned char *message, size_t message_len, EVP_PKEY *private_key,
+                   unsigned char *signature, size_t *signature_len) {
+    if (!message || !private_key || !signature || !signature_len)
+        return 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    if (!ctx) return 0;
-
+    if (!ctx)
+        return 0;
     int ok = 0;
-    EVP_PKEY_CTX *pctx = NULL;
-    if (EVP_DigestSignInit(ctx, &pctx, EVP_sha384(), NULL, private_key) <= 0) goto cleanup;
-    if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0) goto cleanup;
-    if (EVP_DigestSignUpdate(ctx, message, message_len) <= 0) goto cleanup;
-    if (EVP_DigestSignFinal(ctx, NULL, signature_len) <= 0) goto cleanup;
-    ok = (EVP_DigestSignFinal(ctx, signature, signature_len) > 0);
-
-    cleanup:
+    if (EVP_DigestSignInit(ctx, NULL, EVP_sha256(), NULL, private_key) > 0 &&
+        EVP_DigestSignUpdate(ctx, message, message_len) > 0 &&
+        EVP_DigestSignFinal(ctx, signature, signature_len) > 0) {
+        ok = 1;
+    }
     EVP_MD_CTX_free(ctx);
     return ok;
 }
 
-static int crypto_verify_signature(const unsigned char *message, size_t message_len,
-                                   const unsigned char *signature, size_t signature_len,
-                                   EVP_PKEY *public_key) {
-    if (!message || !signature || !public_key) return 0;
+int crypto_verify_ec(const unsigned char *message, size_t message_len,
+                     const unsigned char *signature, size_t signature_len, EVP_PKEY *public_key) {
+    if (!message || !signature || !public_key)
+        return 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    if (!ctx) return 0;
-
+    if (!ctx)
+        return 0;
     int ok = 0;
-    EVP_PKEY_CTX *pctx = NULL;
-    if (EVP_DigestVerifyInit(ctx, &pctx, EVP_sha384(), NULL, public_key) <= 0) goto cleanup;
-    if (EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING) <= 0) goto cleanup;
-    if (EVP_DigestVerifyUpdate(ctx, message, message_len) <= 0) goto cleanup;
-    ok = (EVP_DigestVerifyFinal(ctx, signature, signature_len) == 1);
-
-    cleanup:
+    if (EVP_DigestVerifyInit(ctx, NULL, EVP_sha256(), NULL, public_key) > 0 &&
+        EVP_DigestVerifyUpdate(ctx, message, message_len) > 0 &&
+        EVP_DigestVerifyFinal(ctx, signature, signature_len) == 1) {
+        ok = 1;
+    }
     EVP_MD_CTX_free(ctx);
     return ok;
 }
 
-
-static int crypto_encrypt_message(const unsigned char *plaintext, size_t plaintext_len,
-                           EVP_PKEY *recipient_public_key, unsigned char *ciphertext,
-                           size_t *ciphertext_len) {
-    if (!plaintext || !recipient_public_key || !ciphertext || !ciphertext_len) return 0;
-
-    // Challenge payloads are fixed-size and small
-    if (plaintext_len > RSA_MAX_PLAINTEXT_SIZE) {
-        custom_log(LOG_ERR, TAG, "Plaintext too large for RSA OAEP: %zu > %d", plaintext_len,
-                   RSA_MAX_PLAINTEXT_SIZE);
+int crypto_generate_x25519_keypair(EVP_PKEY **private_key, unsigned char public_key[32]) {
+    if (!private_key || !public_key)
         return 0;
-    }
-
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(recipient_public_key, NULL);
-    if (!ctx || EVP_PKEY_encrypt_init(ctx) <= 0) {
-        if (ctx) EVP_PKEY_CTX_free(ctx);
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_X25519, NULL);
+    if (!ctx)
         return 0;
+    int ok = 0;
+    EVP_PKEY *key = NULL;
+    if (EVP_PKEY_keygen_init(ctx) > 0 && EVP_PKEY_keygen(ctx, &key) > 0) {
+        size_t len = 32;
+        if (EVP_PKEY_get_raw_public_key(key, public_key, &len) > 0) {
+            *private_key = key;
+            ok = 1;
+        } else {
+            EVP_PKEY_free(key);
+        }
     }
-    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-    if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) {
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-    if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha1()) <= 0) {
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-
-    int ok = (EVP_PKEY_encrypt(ctx, ciphertext, ciphertext_len, plaintext, plaintext_len) > 0);
     EVP_PKEY_CTX_free(ctx);
     return ok;
 }
 
-static int crypto_decrypt_message(const unsigned char *ciphertext, size_t ciphertext_len,
-                           EVP_PKEY *private_key, unsigned char *plaintext, size_t *plaintext_len) {
-    if (!ciphertext || !private_key || !plaintext || !plaintext_len) return 0;
-
-    int rsa_size = EVP_PKEY_size(private_key);
-    if (ciphertext_len != (size_t) rsa_size) {
-        custom_log(LOG_ERR, TAG, "Invalid RSA ciphertext length: got=%zu expected=%d",
-                   ciphertext_len, rsa_size);
+int crypto_derive_x25519_secret(EVP_PKEY *private_key, const unsigned char peer_public[32],
+                                unsigned char shared_secret[32]) {
+    EVP_PKEY *peer = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, NULL, peer_public, 32);
+    if (!peer)
         return 0;
-    }
-
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(private_key, NULL);
-    if (!ctx || EVP_PKEY_decrypt_init(ctx) <= 0) {
-        custom_log(LOG_ERR, TAG, "Failed to initialize RSA decryption");
-        if (ctx) EVP_PKEY_CTX_free(ctx);
-        return 0;
+    int ok = 0;
+    size_t secret_len = 32;
+    if (ctx && EVP_PKEY_derive_init(ctx) > 0 && EVP_PKEY_derive_set_peer(ctx, peer) > 0 &&
+        EVP_PKEY_derive(ctx, shared_secret, &secret_len) > 0) {
+        ok = (secret_len == 32);
     }
-    if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
-        custom_log(LOG_ERR, TAG, "Failed to set OAEP padding");
+    if (ctx)
         EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-    if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) {
-        custom_log(LOG_ERR, TAG, "Failed to set OAEP digest SHA-256");
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-    if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha1()) <= 0) {
-        custom_log(LOG_ERR, TAG, "Failed to set MGF1 digest SHA-1");
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-    if (EVP_PKEY_decrypt(ctx, plaintext, plaintext_len, ciphertext, ciphertext_len) <= 0) {
-        custom_log(LOG_ERR, TAG, "Failed to decrypt message");
-        EVP_PKEY_CTX_free(ctx);
-        return 0;
-    }
-
-    EVP_PKEY_CTX_free(ctx);
-    custom_log(LOG_DEBUG, TAG, "RSA decrypt: %zu -> %zu bytes", ciphertext_len, *plaintext_len);
-    return 1;
-}
-
-// Encrypt blob across as many RSA-OAEP blocks as needed
-static int chunk_encrypt(const unsigned char *blob, size_t blob_len, EVP_PKEY *pk,
-                         unsigned char *out, size_t out_cap, size_t *out_len) {
-    int rsa_size = EVP_PKEY_size(pk);
-    if (rsa_size <= OAEP_OVERHEAD) return 0;
-    size_t max_pt = (size_t) rsa_size - OAEP_OVERHEAD;
-    size_t off = 0, written = 0;
-
-    while (off < blob_len) {
-        size_t chunk = blob_len - off;
-        if (chunk > max_pt) chunk = max_pt;
-        if (written + (size_t) rsa_size > out_cap) return 0;
-        size_t clen = out_cap - written;
-        if (!crypto_encrypt_message(blob + off, chunk, pk, out + written, &clen)) return 0;
-        written += clen;
-        off += chunk;
-    }
-    *out_len = written;
-    return 1;
-}
-
-// Inverse of chunk_encrypt: input must be a whole number of keysize blocks.
-static int chunk_decrypt(const unsigned char *in, size_t in_len, EVP_PKEY *sk,
-                         unsigned char *out, size_t out_cap, size_t *out_len) {
-    int rsa_size = EVP_PKEY_size(sk);
-    if (rsa_size <= 0 || in_len == 0 || (in_len % (size_t) rsa_size) != 0) return 0;
-    size_t off = 0, written = 0;
-
-    while (off < in_len) {
-        if (written >= out_cap) return 0;
-        size_t plen = out_cap - written;
-        if (!crypto_decrypt_message(in + off, (size_t) rsa_size, sk, out + written, &plen)) return 0;
-        written += plen;
-        off += (size_t) rsa_size;
-    }
-    *out_len = written;
-    return 1;
-}
-
-static int crypto_sign_and_encrypt(const unsigned char *message, size_t message_len,
-                            const unsigned char *sign_extra, size_t extra_len,
-                            EVP_PKEY *sender_private_key, EVP_PKEY *recipient_public_key,
-                            unsigned char *output, size_t *output_len) {
-    if (!message || !sender_private_key || !recipient_public_key || !output || !output_len)
-        return 0;
-    if (extra_len && !sign_extra) return 0;
-
-    // S = PSS( M || sign_extra )
-    size_t tosign_len = message_len + extra_len;
-    unsigned char *tosign = malloc(tosign_len ? tosign_len : 1);
-    if (!tosign) return 0;
-    memcpy(tosign, message, message_len);
-    if (extra_len) memcpy(tosign + message_len, sign_extra, extra_len);
-
-    unsigned char signature[512];
-    size_t signature_len = sizeof(signature);
-    int ok = crypto_sign_message(tosign, tosign_len, sender_private_key, signature, &signature_len);
-    free(tosign);
-    if (!ok) return 0;
-
-    // blob = M || S, encrypted as one or more OAEP blocks
-    size_t blob_len = message_len + signature_len;
-    unsigned char *blob = malloc(blob_len);
-    if (!blob) return 0;
-    memcpy(blob, message, message_len);
-    memcpy(blob + message_len, signature, signature_len);
-
-    size_t cap = *output_len;
-    ok = chunk_encrypt(blob, blob_len, recipient_public_key, output, cap, output_len);
-    free(blob);
+    EVP_PKEY_free(peer);
     return ok;
 }
 
-static int
-crypto_decrypt_and_verify(const unsigned char *input, size_t input_len,
-                          const unsigned char *sign_extra, size_t extra_len,
-                          EVP_PKEY *own_private_key, EVP_PKEY *signer_public_key,
-                          unsigned char *message, size_t *message_len) {
-    if (!input || !own_private_key || !signer_public_key || !message || !message_len) return 0;
-    if (extra_len && !sign_extra) return 0;
-
-    unsigned char blob[2048];
-    size_t blob_len = 0;
-    if (!chunk_decrypt(input, input_len, own_private_key, blob, sizeof(blob), &blob_len)) return 0;
-
-    // PSS signature length == modulus size of the signer's key.
-    size_t signature_len = (size_t) EVP_PKEY_size(signer_public_key);
-    if (blob_len <= signature_len) return 0;
-    size_t plaintext_len = blob_len - signature_len;
-    if (plaintext_len > *message_len) return 0;
-    const unsigned char *signature = blob + plaintext_len;
-
-    // verify PSS( M || sign_extra )
-    size_t tosign_len = plaintext_len + extra_len;
-    unsigned char *tosign = malloc(tosign_len ? tosign_len : 1);
-    if (!tosign) return 0;
-    memcpy(tosign, blob, plaintext_len);
-    if (extra_len) memcpy(tosign + plaintext_len, sign_extra, extra_len);
-    int ok = crypto_verify_signature(tosign, tosign_len, signature, signature_len, signer_public_key);
-    free(tosign);
-    if (!ok) {
-        custom_log(LOG_ERR, TAG, "Signature verification failed");
-        return 0;
+static void hkdf_expand_label(const unsigned char *secret, const char *label,
+                              const unsigned char *transcript, size_t transcript_len,
+                              unsigned char *out, size_t out_len) {
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if (!pctx)
+        return;
+    if (EVP_PKEY_derive_init(pctx) > 0 && EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()) > 0 &&
+        EVP_PKEY_CTX_set1_hkdf_key(pctx, secret, 32) > 0 &&
+        EVP_PKEY_CTX_add1_hkdf_info(pctx, (const unsigned char *)label, (int)strlen(label)) > 0 &&
+        EVP_PKEY_CTX_add1_hkdf_info(pctx, transcript, (int)transcript_len) > 0) {
+        EVP_PKEY_derive(pctx, out, &out_len);
     }
-
-    memcpy(message, blob, plaintext_len);
-    *message_len = plaintext_len;
-    return 1;
+    EVP_PKEY_CTX_free(pctx);
 }
 
-int crypto_sign_and_encrypt_with_keys(const unsigned char *m, size_t ml,
-                                      const unsigned char *sign_extra, size_t extra_len,
-                                      EVP_PKEY *sk, EVP_PKEY *pk, unsigned char *o, size_t *ol) {
-    return crypto_sign_and_encrypt(m, ml, sign_extra, extra_len, sk, pk, o, ol);
+void crypto_derive_response_key_iv(const unsigned char shared_secret[32],
+                                   const unsigned char *transcript, size_t transcript_len,
+                                   unsigned char key[32], unsigned char iv[12]) {
+    hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 key", transcript, transcript_len, key, 32);
+    hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 nonce", transcript, transcript_len, iv, 12);
 }
 
-int
-crypto_decrypt_and_verify_with_keys(const unsigned char *i, size_t il,
-                                    const unsigned char *sign_extra, size_t extra_len,
-                                    EVP_PKEY *sk, EVP_PKEY *verify_pk, unsigned char *m, size_t *ml) {
-    return crypto_decrypt_and_verify(i, il, sign_extra, extra_len, sk, verify_pk, m, ml);
+int crypto_aead_encrypt(const unsigned char key[32], const unsigned char iv[12],
+                        const unsigned char *plaintext, size_t plaintext_len,
+                        const unsigned char *aad, size_t aad_len, unsigned char *ciphertext,
+                        size_t *ciphertext_len) {
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
+        return 0;
+    int len = 0, out_len = 0, ok = 0;
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL) > 0) {
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL);
+        if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv) > 0) {
+            if (aad && aad_len > 0)
+                EVP_EncryptUpdate(ctx, NULL, &len, aad, (int)aad_len);
+            if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, (int)plaintext_len) > 0) {
+                out_len = len;
+                if (EVP_EncryptFinal_ex(ctx, ciphertext + out_len, &len) > 0) {
+                    out_len += len;
+                    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, ciphertext + out_len);
+                    *ciphertext_len = (size_t)out_len + 16;
+                    ok = 1;
+                }
+            }
+        }
+    }
+    EVP_CIPHER_CTX_free(ctx);
+    return ok;
+}
+
+int crypto_aead_decrypt(const unsigned char key[32], const unsigned char iv[12],
+                        const unsigned char *ciphertext, size_t ciphertext_len,
+                        const unsigned char *aad, size_t aad_len, unsigned char *plaintext,
+                        size_t *plaintext_len) {
+    if (ciphertext_len < 16)
+        return 0;
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
+        return 0;
+    int len = 0, out_len = 0, ok = 0;
+    size_t enc_len = ciphertext_len - 16;
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL) > 0) {
+        EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL);
+        if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) > 0) {
+            if (aad && aad_len > 0)
+                EVP_DecryptUpdate(ctx, NULL, &len, aad, (int)aad_len);
+            if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, (int)enc_len) > 0) {
+                out_len = len;
+                EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, (void *)(ciphertext + enc_len));
+                if (EVP_DecryptFinal_ex(ctx, plaintext + out_len, &len) > 0) {
+                    *plaintext_len = (size_t)out_len + (size_t)len;
+                    ok = 1;
+                }
+            }
+        }
+    }
+    EVP_CIPHER_CTX_free(ctx);
+    return ok;
 }

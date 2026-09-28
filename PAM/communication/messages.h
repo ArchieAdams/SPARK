@@ -22,8 +22,6 @@ typedef enum {
 typedef struct {
     uint8_t device_id[MSG_DEVICE_ID_LEN];
     uint32_t port;
-    const uint8_t *pk_a;
-    uint32_t pk_a_len;
 } SetupReq;
 
 typedef struct {
@@ -33,7 +31,13 @@ typedef struct {
 } Commit;
 
 typedef struct {
-    uint8_t n[MSG_NONCE_LEN];
+    const uint8_t *pk_a;
+    uint32_t pk_a_len;
+    uint8_t n_a[MSG_NONCE_LEN];
+} SasNonce;
+
+typedef struct {
+    uint8_t n_v[MSG_NONCE_LEN];
     uint8_t r[MSG_R_LEN];
 } Reveal;
 
@@ -41,7 +45,6 @@ typedef struct {
 // parse_*  return 0 on success, -1 on malformed/underrun input.
 
 ssize_t msg_encode_setup_req(const uint8_t device_id[MSG_DEVICE_ID_LEN], uint32_t port,
-                             const uint8_t *pk_a, uint32_t pk_a_len,
                              uint8_t *out, size_t out_cap);
 int msg_parse_setup_req(const uint8_t *p, size_t len, SetupReq *out);
 
@@ -50,7 +53,12 @@ ssize_t msg_encode_commit(const uint8_t *pk_v, uint32_t pk_v_len,
                           uint8_t *out, size_t out_cap);
 int msg_parse_commit(const uint8_t *p, size_t len, Commit *out);
 
-ssize_t msg_encode_reveal(const uint8_t n[MSG_NONCE_LEN], const uint8_t r[MSG_R_LEN],
+ssize_t msg_encode_sas_nonce(const uint8_t *pk_a, uint32_t pk_a_len,
+                             const uint8_t n_a[MSG_NONCE_LEN],
+                             uint8_t *out, size_t out_cap);
+int msg_parse_sas_nonce(const uint8_t *p, size_t len, SasNonce *out);
+
+ssize_t msg_encode_reveal(const uint8_t n_v[MSG_NONCE_LEN], const uint8_t r[MSG_R_LEN],
                           uint8_t *out, size_t out_cap);
 int msg_parse_reveal(const uint8_t *p, size_t len, Reveal *out);
 

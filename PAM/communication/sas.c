@@ -2,8 +2,8 @@
 #include <openssl/evp.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <wchar.h>
 #include <stdio.h>
+#include <string.h>
 
 static const char *const EMOJI[] = {
     "🎉", "🎱", "🤖", "👻", "🐶", "📱", "🦊", "🐼",
@@ -18,14 +18,21 @@ static void upd_lp(EVP_MD_CTX *c, const uint8_t *b, size_t n) {
     EVP_DigestUpdate(c, b, n);
 }
 
-uint32_t sas_compute(const uint8_t *n, size_t nlen,
-                     const uint8_t *pkv, size_t pkvlen,
-                     const uint8_t *pka, size_t pkalen) {
+uint32_t sas_compute(const uint8_t *pkv, size_t pkvlen,
+                     const uint8_t *pka, size_t pkalen,
+                     const uint8_t *nv, size_t nvlen,
+                     const uint8_t *r, size_t rlen,
+                     const uint8_t *na, size_t nalen) {
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
-    upd_lp(ctx, n, nlen);
+
+    // Hash order to match diagram: pkV, pkA, nV, r, nA
     upd_lp(ctx, pkv, pkvlen);
     upd_lp(ctx, pka, pkalen);
+    upd_lp(ctx, nv, nvlen);
+    upd_lp(ctx, r, rlen);
+    upd_lp(ctx, na, nalen);
+
     unsigned char h[32];
     unsigned int hl = 0;
     EVP_DigestFinal_ex(ctx, h, &hl);

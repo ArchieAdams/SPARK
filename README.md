@@ -95,10 +95,10 @@ The EasyCrypt proof succeeds if it exits without errors the `run-easycrypt.sh` s
 ### PAM
 The `PAM` directory contains the verifier side of SPARK: a standalone authenticator daemon and a PAM module (`pam_authenticator.so`) that hooks it into Linux authentication.
 
-To build it you will need a C compiler, `cmake`, `make`, PAM headers, and the following libraries: OpenSSL, BlueZ, libwebsockets, libcjson and tss2-esys (for the TPM 2.0 monotonic counter). On Debian/Ubuntu:
+To build it you will need a C compiler, `cmake`, `make`, PAM headers, and the following libraries: OpenSSL, BlueZ, libwebsockets, libcjson and tss2-esys (for the TPM-backed P-256 signing key). On Debian/Ubuntu:
 
 ```bash
-sudo apt install gcc cmake make libssl-dev libbluetooth-dev libwebsockets-dev libcjson-dev libtss2-dev libpam0g-dev libcrypt-dev
+sudo apt install gcc cmake make libssl-dev libbluetooth-dev libwebsockets-dev libcjson-dev libtss2-dev libpam0g-dev libcrypt-dev tpm2-tools
 ```
 
 Then, from the `PAM` directory:
@@ -156,10 +156,10 @@ sudo cp pam_config/authenticator-test /etc/pam.d/
 pamtester authenticator-test <username> authenticate
 ```
 
-This triggers the same challenge-response flow as a real login: the daemon contacts the paired phone, and the PAM module accepts or rejects based on its response.
+This triggers the same EC challenge-response flow as a real login: the daemon contacts the paired phone, verifies the phone's P-256 signature, and uses an ephemeral X25519 session key to protect the response. The verifier's own P-256 signing key lives in the TPM.
 
 ### App
-The `App` directory contains the companion Android app, which holds the authenticator key in the hardware-backed keystore and asks for a biometric-verified tap before answering a login challenge.
+The `App` directory contains the companion Android app, which holds the authenticator's P-256 signing key in the hardware-backed keystore, derives an ephemeral X25519 session key per login, and asks for a biometric-verified tap before answering a login challenge.
 
 It is a standard Gradle project (minimum SDK 24). To build it, either open `App` in Android Studio, or from the `App` directory run:
 
@@ -178,4 +178,3 @@ Plug the phone in over USB with developer mode/USB debugging enabled and run `./
 ## License
 
 SPARK is released under the Apache 2.0 license see [LICENSE](LICENSE).
-

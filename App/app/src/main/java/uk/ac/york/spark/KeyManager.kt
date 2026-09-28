@@ -11,6 +11,7 @@ import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.Security
+import java.security.spec.ECGenParameterSpec
 
 object KeyManager {
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
@@ -29,15 +30,13 @@ object KeyManager {
             return it.publicKey
         }
 
-        val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE)
+        val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEYSTORE)
         val spec = KeyGenParameterSpec.Builder(
             alias,
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_DECRYPT
+            KeyProperties.PURPOSE_SIGN
         )
-            .setKeySize(3072)
-            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA384)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+            .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+            .setDigests(KeyProperties.DIGEST_SHA256)
             .build()
 
         kpg.initialize(spec)

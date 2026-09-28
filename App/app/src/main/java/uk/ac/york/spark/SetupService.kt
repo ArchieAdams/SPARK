@@ -10,10 +10,9 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import java.nio.ByteBuffer
-import java.security.KeyFactory
 import java.security.MessageDigest
-import java.security.spec.X509EncodedKeySpec
+import java.security.SecureRandom
+import java.util.Base64
 import java.util.Locale
 import java.util.UUID
 import kotlin.concurrent.thread
@@ -33,7 +32,6 @@ class SetupService(
         private const val KEY_PRIVATE_KEY_ALIAS = "private_key_alias"
         private const val KEY_PUBLIC_KEY = "public_key"
         private const val KEY_PC_PUBLIC_KEY = "pc_public_key"
-        private const val KEY_AUTH_COUNTER = "auth_counter"
         private const val BT_SERVICE_NAME = "SparkSetup"
         private const val BT_DISCOVERABLE_DURATION = 120
     }
@@ -47,6 +45,7 @@ class SetupService(
     private var pkADer: ByteArray? = null
     @Volatile private var pkVDer: ByteArray? = null
     @Volatile private var commitC: ByteArray? = null
+    @Volatile private var nA: ByteArray? = null
     @Volatile private var userAccepted = false
     @Volatile private var peerAccepted: Boolean? = null
     @Volatile private var sasCode = 0
@@ -62,13 +61,6 @@ class SetupService(
 
     fun isPaired(): Boolean = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getBoolean(KEY_IS_PAIRED, false)
-
-    // Last counter (ctr_A) accepted from the verifier.
-    fun getAuthCounter(): Long = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .getLong(KEY_AUTH_COUNTER, 0L)
-
-    fun setAuthCounter(value: Long) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit { putLong(KEY_AUTH_COUNTER, value) }
 
     fun getStoredConfig(): SetupConfig? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -112,7 +104,7 @@ class SetupService(
                 override fun onConnected(connectionService: ConnectionService) {
                     channel?.send(
                         MsgType.MSG_SETUP_REQ,
-                        Messages.setupReq(UUID.fromString(deviceId), pkADer!!, devicePort)
+                        Messages.setupReq(UUID.fromString(deviceId), devicePort)
                     )
                 }
                 override fun onDisconnected(connectionService: ConnectionService) {}
@@ -129,16 +121,26 @@ class SetupService(
                     val c = Messages.parseCommit(m.payload)
                     pkVDer = c.pkV
                     commitC = c.c
+                    
+                    // Generate nA and respond with MSG_SAS_NONCE
+                    val nonce = ByteArray(32)
+                    SecureRandom().nextBytes(nonce)
+                    nA = nonce
+                    
+                    channel?.send(
+                        MsgType.MSG_SAS_NONCE,
+                        Messages.sasNonce(pkADer!!, nA!!)
+                    )
                 }
 
                 MsgType.MSG_REVEAL -> {
                     val rv = Messages.parseReveal(m.payload)
-                    val expected = sha256(rv.n + rv.r)
+                    val expected = sha256(rv.nV + rv.r)
                     if (!expected.contentEquals(commitC)) {
                         abort(AbortReason.COMMITMENT_MISMATCH, "Commitment mismatch")
                         return
                     }
-                    sasCode = Messages.sasCode(rv.n, pkVDer!!, pkADer!!)
+                    sasCode = Messages.sasCode(pkVDer!!, pkADer!!, rv.nV, rv.r, nA!!)
                     onSasGenerated?.invoke(Messages.sasToEmoji(sasCode))
                 }
 
@@ -205,8 +207,8 @@ class SetupService(
     private fun sha256(b: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(b)
 
     private fun derToPem(der: ByteArray): String {
-        val pub = KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(der))
-        return KeyManager.publicKeyToPEM(pub)
+        val encoded = Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(der)
+        return "-----BEGIN PUBLIC KEY-----\n$encoded\n-----END PUBLIC KEY-----\n"
     }
 
     private fun saveConfig(config: SetupConfig) {

@@ -78,10 +78,11 @@ class ConnectionForegroundService : Service(), ConnectionListener {
                 LoginApprovalActivity.ACTION_APPROVED -> {
                     val challenge = intent.getStringExtra(LoginApprovalActivity.EXTRA_RESULT_CHALLENGE) ?: pendingChallenge
                     clearPendingAuth()
-                    challenge?.let { processApprovedChallenge(it) }
+                    processApprovedChallenge()
                 }
                 LoginApprovalActivity.ACTION_DENIED -> {
                     clearPendingAuth()
+                    channel?.send(MsgType.MSG_ABORT, byteArrayOf(0))
                     uiMessageListener?.onMessage("✗ Login request denied")
                 }
             }
@@ -102,7 +103,6 @@ class ConnectionForegroundService : Service(), ConnectionListener {
 
                 startForeground(NOTIFICATION_ID, createNotification("Connecting", "Initializing connection..."))
 
-                // Re-initialize connections if config changes or after new pairing
                 stopConnections()
                 startConnections()
             }
@@ -131,11 +131,19 @@ class ConnectionForegroundService : Service(), ConnectionListener {
 
     private fun handleMessage(m: Message) {
         when (m.type) {
-            MsgType.MSG_CHALLENGE -> {
-                // Verify signature + counter BEFORE prompting, so replayed/forged
-                // challenges are dropped silently instead of nagging the user.
-                if (CryptoMessageHandler(this).verifyChallenge(m.payload) == null) {
+            MsgType.MSG_AUTH_EPH_V -> {
+                try {
+                    val ephA = CryptoMessageHandler(this).handleStep1(m.payload)
+                    channel?.send(MsgType.MSG_AUTH_EPH_A, ephA)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error handling MSG_AUTH_EPH_V", e)
+                    channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
+                }
+            }
+            MsgType.MSG_AUTH_STEP3 -> {
+                if (!CryptoMessageHandler(this).handleStep3(m.payload)) {
                     uiMessageListener?.onMessage("✗ Ignored invalid login request")
+                    channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
                 } else {
                     val challengeHex = m.payload.toHex()
                     storePendingAuth(challengeHex, pendingDeviceLabel ?: "Linked PC")
@@ -181,18 +189,20 @@ class ConnectionForegroundService : Service(), ConnectionListener {
         startActivity(intent)
     }
 
-    private fun processApprovedChallenge(challenge: String) {
+    private fun processApprovedChallenge() {
         try {
             val handler = CryptoMessageHandler(this)
-            val response = handler.processAuthenticationChallenge(challenge.hexToBytes())
+            val response = handler.handleStep4()
             if (response != null) {
-                channel?.send(MsgType.MSG_RESPONSE, response)
+                channel?.send(MsgType.MSG_AUTH_STEP4, response)
                 uiMessageListener?.onMessage("✓ Login approved")
             } else {
                 uiMessageListener?.onMessage("✗ ${handler.lastUserErrorMessage ?: "Auth failed"}")
+                channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Auth processing error", e)
+            channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
         }
     }
 

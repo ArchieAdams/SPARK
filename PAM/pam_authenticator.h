@@ -8,4 +8,4 @@
 
 int pam_authenticate_user(const char *username);
 
-#endif //PAM_AUTHENTICATOR_H
+#endif // PAM_AUTHENTICATOR_H

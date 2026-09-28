@@ -1,28 +1,30 @@
+#include <ctype.h>
+#include <log_manager.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <time.h>
-#include <log_manager.h>
 #include <sys/syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_misc.h>
 
 #include "authenticator.h"
-#include "pairing_server.h"
 #include "config_manager.h"
+#include "pairing_server.h"
 
-static const char* TAG = "main";
+static const char *TAG = "main";
 
 // Under pkexec (allow_active), the re-pair code is the actual authorisation.
 static int repair_auth(const char *user) {
     pam_handle_t *pamh = NULL;
-    struct pam_conv conv = { misc_conv, NULL };
-    if (pam_start("spark-pair", user, &conv, &pamh) != PAM_SUCCESS) return -1;
+    struct pam_conv conv = {misc_conv, NULL};
+    if (pam_start("spark-pair", user, &conv, &pamh) != PAM_SUCCESS)
+        return -1;
     int rc = pam_authenticate(pamh, 0);
-    if (rc == PAM_SUCCESS) rc = pam_acct_mgmt(pamh, 0);
+    if (rc == PAM_SUCCESS)
+        rc = pam_acct_mgmt(pamh, 0);
     pam_end(pamh, rc);
     return rc == PAM_SUCCESS ? 0 : -1;
 }
@@ -41,7 +43,9 @@ int main(int argc, char *argv[]) {
             custom_log(LOG_ERR, TAG, "Re-pair authorisation failed.\n");
             return 1;
         }
-        custom_log(LOG_INFO, TAG, "Starting A1 pairing for user '%s' (WebSocket: 8080, UDP: 5555)\n", setup_username);
+        custom_log(LOG_INFO, TAG,
+                   "Starting A1 pairing for user '%s' (WebSocket: 8080, UDP: 5555)\n",
+                   setup_username);
         custom_log(LOG_INFO, TAG, "Open the mobile SPARK app and start pairing now.\n");
 
         if (pairing_server_run(setup_username) != 0) {
@@ -55,13 +59,13 @@ int main(int argc, char *argv[]) {
     const char *username = (argc > 1) ? argv[1] : "archiea";
 
     if (config_manager_init() != 0) {
-        custom_log(LOG_ERR,TAG, "Failed to initialize config manager\n");
+        custom_log(LOG_ERR, TAG, "Failed to initialize config manager\n");
         return 1;
     }
 
     cache_username(username);
     if (load_config() != 0) {
-        custom_log(LOG_ERR,TAG, "Failed to load config for user %s\n", username);
+        custom_log(LOG_ERR, TAG, "Failed to load config for user %s\n", username);
         return 1;
     }
 
@@ -69,22 +73,24 @@ int main(int argc, char *argv[]) {
 
     const AuthResult result = authenticator_authenticate(&details);
     if (result != AUTH_SUCCESS) {
-        custom_log(LOG_ERR,TAG, "Authentication failed: %s\n", authenticator_result_to_string(result));
+        custom_log(LOG_ERR, TAG, "Authentication failed: %s\n",
+                   authenticator_result_to_string(result));
         return 1;
     }
 
     if (details.response_len == 0 || details.response_len > sizeof(details.response)) {
-        custom_log(LOG_ERR,TAG, "Authentication failed: invalid response length (%zu)\n", details.response_len);
+        custom_log(LOG_ERR, TAG, "Authentication failed: invalid response length (%zu)\n",
+                   details.response_len);
         return 1;
     }
 
     // Authentication successful
-    custom_log(LOG_INFO,TAG,"Authentication succeeded\n");
-    custom_log(LOG_INFO,TAG,"Response (%zu bytes): ", details.response_len);
+    custom_log(LOG_INFO, TAG, "Authentication succeeded\n");
+    custom_log(LOG_INFO, TAG, "Response (%zu bytes): ", details.response_len);
     for (size_t i = 0; i < details.response_len; i++) {
-        custom_log(LOG_INFO,TAG,"%02x", details.response[i]);
+        custom_log(LOG_INFO, TAG, "%02x", details.response[i]);
     }
-    custom_log(LOG_INFO,TAG,"\n");
+    custom_log(LOG_INFO, TAG, "\n");
 
     // Try to print as text if printable
     int printable = 1;
@@ -96,7 +102,8 @@ int main(int argc, char *argv[]) {
         }
     }
     if (printable) {
-        custom_log(LOG_INFO,TAG,"Response (text): %.*s\n", (int)details.response_len, details.response);
+        custom_log(LOG_INFO, TAG, "Response (text): %.*s\n", (int)details.response_len,
+                   details.response);
     }
 
     return 0;

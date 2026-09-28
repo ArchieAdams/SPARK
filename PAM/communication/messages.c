@@ -25,18 +25,15 @@ static int rd_u32(Reader *r, uint32_t *out) {
     return 0;
 }
 
-// ---- SETUP_REQ: deviceId[16] ‖ port[4] ‖ len(pkA) ‖ pkA ----
+// SETUP_REQ: deviceId[16] ‖ port[4]
 
 ssize_t msg_encode_setup_req(const uint8_t device_id[MSG_DEVICE_ID_LEN], uint32_t port,
-                             const uint8_t *pk_a, uint32_t pk_a_len,
                              uint8_t *out, size_t out_cap) {
-    size_t need = MSG_DEVICE_ID_LEN + 4 + 4 + pk_a_len;
+    size_t need = MSG_DEVICE_ID_LEN + 4;
     if (out_cap < need) return -1;
     size_t o = 0;
     memcpy(out + o, device_id, MSG_DEVICE_ID_LEN); o += MSG_DEVICE_ID_LEN;
     put_u32_be(out + o, port); o += 4;
-    put_u32_be(out + o, pk_a_len); o += 4;
-    memcpy(out + o, pk_a, pk_a_len); o += pk_a_len;
     return (ssize_t)o;
 }
 
@@ -46,8 +43,6 @@ int msg_parse_setup_req(const uint8_t *p, size_t len, SetupReq *out) {
     if (rd_bytes(&r, MSG_DEVICE_ID_LEN, &id) < 0) return -1;
     memcpy(out->device_id, id, MSG_DEVICE_ID_LEN);
     if (rd_u32(&r, &out->port) < 0) return -1;
-    if (rd_u32(&r, &out->pk_a_len) < 0) return -1;
-    if (rd_bytes(&r, out->pk_a_len, &out->pk_a) < 0) return -1;
     return 0;
 }
 
@@ -75,12 +70,36 @@ int msg_parse_commit(const uint8_t *p, size_t len, Commit *out) {
     return 0;
 }
 
-// ---- REVEAL: N[32] ‖ r[32] ----
+// SAS_NONCE: len(pkA) ‖ pkA ‖ n_a[32]
 
-ssize_t msg_encode_reveal(const uint8_t n[MSG_NONCE_LEN], const uint8_t r[MSG_R_LEN],
+ssize_t msg_encode_sas_nonce(const uint8_t *pk_a, uint32_t pk_a_len,
+                             const uint8_t n_a[MSG_NONCE_LEN],
+                             uint8_t *out, size_t out_cap) {
+    size_t need = 4 + pk_a_len + MSG_NONCE_LEN;
+    if (out_cap < need) return -1;
+    size_t o = 0;
+    put_u32_be(out + o, pk_a_len); o += 4;
+    memcpy(out + o, pk_a, pk_a_len); o += pk_a_len;
+    memcpy(out + o, n_a, MSG_NONCE_LEN); o += MSG_NONCE_LEN;
+    return (ssize_t)o;
+}
+
+int msg_parse_sas_nonce(const uint8_t *p, size_t len, SasNonce *out) {
+    Reader r = { p, len, 0 };
+    if (rd_u32(&r, &out->pk_a_len) < 0) return -1;
+    if (rd_bytes(&r, out->pk_a_len, &out->pk_a) < 0) return -1;
+    const uint8_t *n;
+    if (rd_bytes(&r, MSG_NONCE_LEN, &n) < 0) return -1;
+    memcpy(out->n_a, n, MSG_NONCE_LEN);
+    return 0;
+}
+
+// REVEAL: n_v[32] ‖ r[32]
+
+ssize_t msg_encode_reveal(const uint8_t n_v[MSG_NONCE_LEN], const uint8_t r[MSG_R_LEN],
                           uint8_t *out, size_t out_cap) {
     if (out_cap < MSG_NONCE_LEN + MSG_R_LEN) return -1;
-    memcpy(out, n, MSG_NONCE_LEN);
+    memcpy(out, n_v, MSG_NONCE_LEN);
     memcpy(out + MSG_NONCE_LEN, r, MSG_R_LEN);
     return MSG_NONCE_LEN + MSG_R_LEN;
 }
@@ -90,7 +109,7 @@ int msg_parse_reveal(const uint8_t *p, size_t len, Reveal *out) {
     const uint8_t *n, *rr;
     if (rd_bytes(&r, MSG_NONCE_LEN, &n) < 0) return -1;
     if (rd_bytes(&r, MSG_R_LEN, &rr) < 0) return -1;
-    memcpy(out->n, n, MSG_NONCE_LEN);
+    memcpy(out->n_v, n, MSG_NONCE_LEN);
     memcpy(out->r, rr, MSG_R_LEN);
     return 0;
 }

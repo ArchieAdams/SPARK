@@ -13,13 +13,12 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(BLUEZ REQUIRED bluez)
 pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
-pkg_check_modules(TSS2_ESYS REQUIRED tss2-esys)  # TPM 2.0 NV monotonic counter
+pkg_check_modules(TSS2_ESYS REQUIRED tss2-esys)
 
 enable_testing()
 
 set(COMMON_SOURCES
         config_manager.c
-        tpm_counter.c
         communication/connection_manager.c
         communication/message_manager.c
         communication/phone_connection.c
@@ -158,4 +157,3 @@ set_target_properties(pam_authenticator PROPERTIES PREFIX "")
 set_target_properties(pam_authenticator PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pam"
 )
-

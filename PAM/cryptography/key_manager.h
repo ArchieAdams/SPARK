@@ -3,7 +3,10 @@
 
 #include <openssl/evp.h>
 
-int key_manager_generate_rsa_keypair(const char *private_key_file, const char *public_key_file);
+int key_manager_generate_ec_keypair(const char *private_key_file, const char *public_key_file);
+int key_manager_tpm_sign_p256(const char *handle_file, const unsigned char *message,
+                              size_t message_len, unsigned char **signature_der,
+                              size_t *signature_der_len);
 int key_manager_load_private_key(const char *filepath, EVP_PKEY **out_key);
 int key_manager_load_public_key(const char *filepath, EVP_PKEY **out_key);
 void key_manager_free_key(EVP_PKEY *key);

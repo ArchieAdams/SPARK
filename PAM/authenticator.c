@@ -1,9 +1,9 @@
 #include "authenticator.h"
-#include "config_manager.h"
 #include "communication/phone_connection.h"
+#include "config_manager.h"
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 AuthResult authenticator_authenticate(AuthDetails *details) {
     char device_uuid[256];
@@ -54,13 +54,21 @@ AuthResult authenticator_authenticate(AuthDetails *details) {
 
 const char *authenticator_result_to_string(AuthResult result) {
     switch (result) {
-        case AUTH_SUCCESS:            return "Authentication successful";
-        case AUTH_CONFIG_ERROR:       return "Configuration error (device not registered)";
-        case AUTH_CONNECTION_FAILED:  return "Failed to connect to device";
-        case AUTH_CHALLENGE_FAILED:   return "Failed to send challenge";
-        case AUTH_RESPONSE_FAILED:    return "Device response verification failed";
-        case AUTH_TIMEOUT:            return "Timeout waiting for device";
-        case AUTH_VERIFICATION_FAILED: return "Signature verification failed";
-        default:                      return "Unknown error";
+        case AUTH_SUCCESS:
+            return "Authentication successful";
+        case AUTH_CONFIG_ERROR:
+            return "Configuration error (device not registered)";
+        case AUTH_CONNECTION_FAILED:
+            return "Failed to connect to device";
+        case AUTH_CHALLENGE_FAILED:
+            return "Failed to send challenge";
+        case AUTH_RESPONSE_FAILED:
+            return "Device response verification failed";
+        case AUTH_TIMEOUT:
+            return "Timeout waiting for device";
+        case AUTH_VERIFICATION_FAILED:
+            return "Signature verification failed";
+        default:
+            return "Unknown error";
     }
 }
