@@ -116,6 +116,11 @@ static struct lws_protocols protocols[] = {
     { NULL, NULL, 0, 0 }
 };
 
+static int skip_captive_portal_check(struct lws_context *cx) {
+    lws_system_cpd_set(cx, LWS_CPD_INTERNET_OK);
+    return 0;
+}
+
 int ws_init(int port) {
     struct lws_context_creation_info info;
     memset(&info, 0, sizeof(info));
@@ -124,6 +129,9 @@ int ws_init(int port) {
 
     info.port = port;
     info.protocols = protocols;
+    // TLS needs DO_SSL_GLOBAL_INIT on the vhost, but lws calls OPENSSL_cleanup() on destroy when
+    // it is set on the context. That kills OpenSSL for the rest of the process (e.g. X25519 keygen
+    // after Bluetooth wins the dual connect), so only the vhost gets it.
     info.options |= LWS_SERVER_OPTION_ALLOW_LISTEN_SHARE | LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
     // Corrected paths to match your project root
@@ -136,8 +144,19 @@ int ws_init(int port) {
         close(devnull);
     }
 
-    context = lws_create_context(&info);
-    return context ? 0 : -1;
+    struct lws_context_creation_info ctx_info;
+    memset(&ctx_info, 0, sizeof(ctx_info));
+    ctx_info.options = LWS_SERVER_OPTION_EXPLICIT_VHOSTS;
+    static const lws_system_ops_t system_ops = {.captive_portal_detect_request = skip_captive_portal_check};
+    ctx_info.system_ops = &system_ops;
+    context = lws_create_context(&ctx_info);
+    if (!context) return -1;
+    if (!lws_create_vhost(context, &info)) {
+        lws_context_destroy(context);
+        context = NULL;
+        return -1;
+    }
+    return 0;
 }
 
 void ws_poll(int timeout_ms) {
