@@ -1,0 +1,25 @@
+{
+  "title": "SPARK: Secure Passwordless Authentication with Reveal-committed Knowledge",
+  "description": "SPARK is a formally verified, zero-trusted-party protocol suite for passwordless local OS login, pairing a desktop with a smartphone the user already owns. This artifact contains the SPARK-Pairing and SPARK-Authentication ProVerif models, the EasyCrypt mechanisation of the hash commitment scheme, a Linux PAM module implementation, and an Android companion app.",
+  "creators": [
+    {
+      "name": "Adams, Archie",
+      "affiliation": "University of York"
+    },
+    {
+      "name": "Metere, Roberto",
+      "affiliation": "University of York"
+    }
+  ],
+  "license": "Apache-2.0",
+  "upload_type": "software",
+  "access_right": "open",
+  "keywords": [
+    "passwordless authentication",
+    "formal verification",
+    "ProVerif",
+    "EasyCrypt",
+    "short authentication strings",
+    "operating system security"
+  ]
+}
