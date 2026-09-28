@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21207792.svg)](https://doi.org/10.5281/zenodo.21207792)
+[![DOI](https://zenodo.org/badge/1277075707.svg)](https://doi.org/10.5281/zenodo.21487184)
 
 [![License](https://img.shields.io/github/license/ArchieAdams/SPARK)](LICENSE)                                                                                                                                       
 ![ProVerif](https://img.shields.io/badge/ProVerif-2.05-blue)![EasyCrypt](https://img.shields.io/badge/EasyCrypt-verified-blue)
