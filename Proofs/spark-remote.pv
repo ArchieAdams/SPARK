@@ -2,142 +2,191 @@
  * Copyright (C) 2026 Archie Adams, Roberto Metere, University of York
  * SPDX-License-Identifier: Apache-2.0
  *
- * Secure Passwordless Authentication with Reveal-commtted Knowledge
+ * Secure Passwordless Authentication with Reveal-committed Knowledge
+ *
+ * SPARK-Authentication
+ *
+ *   1. V -> A : eph_V
+ *   2. A -> V : eph_A
+ *   3. V -> A : aead_K( sign_skV( "req"  || eph_V || eph_A || pk_V || pk_A ) )
+ *               A decrypts, verifies, checks the pairing, and only then
+ *               asks the user for biometric approval
+ *   4. A -> V : aead_K( sign_skA( "resp" || eph_V || eph_A || pk_A || pk_V ) )
+ *
+ *   K = HKDF( ECDH(eph, eph'), info = eph_V || eph_A || pk_V || pk_A )
+ *
+ * Long-term keys are ECDSA P-256 inside the secure element; ephemerals are
+ * X25519.  The ephemerals are the challenges, so there is no separate nonce,
+ * session identifier or counter.  No identity travels on the wire: each
+ * device takes the peer key from its trust store, and a wrong choice only
+ * makes the exchange fail.
+ *
+ * Assume-guarantee.  This model assumes what SPARK-Pairing guarantees
+ * (spark-setup.pv): trust stores contain only pairs of genuine device keys
+ * that completed a pairing.  Honest devices are unboundedly many; the
+ * adversary controls the network, chooses which honest devices are paired,
+ * and may use keys of its own, but cannot enter an honest trust store.
+ * The two phases composed are checked in spark-combined.pv.
+ *
+ * Forward secrecy.  In phase 1 every honest long-term key is given to the
+ * adversary.  The name s is a probe for the session key K of a completed
+ * login (data sent under K after the unlock), not a protocol message.
+ *
+ * Queries and expected outcomes: all true.
  *)
-set attacker = active.
-(* set preciseActions = true. *)
 
-(* The untrusted public network *)
+(* The untrusted network (Bluetooth / Wi-Fi) *)
 free c: channel.
 
-(* Human accept/reject authentication request *)
-free local_authenticator_input: channel [private].
+(* On the phone: the approval request shown to the user, and the user's
+   biometric approval.  Two channels, so that the phone can never read back
+   its own request as an approval. *)
+free prompt: channel [private].
+free approval: channel [private].
 
-type pkey.
 type skey.
-type nonce.
+type pkey.
+type exponent.
+type G.
+type key.
 
+(* ECDSA P-256 signatures *)
 fun pk(skey): pkey.
-
-(* Public-Key Signatures *)
 fun sign(bitstring, skey): bitstring.
 reduc forall m: bitstring, k: skey; verify(sign(m, k), pk(k), m) = true.
 reduc forall m: bitstring, k: skey; getmess(sign(m, k)) = m.
 
-(* Asymmetric Encryption *)
-fun aenc(bitstring, pkey): bitstring.
-reduc forall m: bitstring, k: skey; adec(aenc(m, pk(k)), k) = m.
+(* X25519 ephemeral Diffie-Hellman *)
+const g: G [data].
+fun exp(G, exponent): G.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
 
-(* Store valid key pairs by role *)
-table identitiesV(skey, pkey).
-table identitiesA(skey, pkey).
+(* HKDF-SHA-256; the second argument is the info field *)
+fun kdf(G, bitstring): key.
 
-(*
- * The `trusted_keys` table models the local trust store collecting valid,
- * successfully paired (Verifier Public Key, Authenticator Public Key) tuples.
- * Crucially, this table is known by both verifier and authenticator after
- * a succesful OOB setup.
- *)
-table trusted_keys(pkey, pkey).
+(* AES-GCM under K *)
+fun aead(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; aeadDec(aead(m, k), k) = m.
 
+(* Domain-separation labels of the two signed messages *)
+const lreq: bitstring.
+const lresp: bitstring.
 
-event verifierStarted(pkey, pkey, nonce).
-event authenticatorFinished(pkey, pkey, nonce).
-event verifierSuccess(pkey, pkey, nonce).
+(* Honest devices, and the trust stores written by pairing *)
+table idV(skey, pkey).
+table idA(skey, pkey).
+table trusted_V(pkey, pkey).   (* verifier's store: (own key, paired phone)    *)
+table trusted_A(pkey, pkey).   (* phone's store:    (paired verifier, own key) *)
 
-(* Verifier (V) *)
+event paired(pkey, pkey).
+event verifierStarted(pkey, pkey, G, G).
+event authenticatorPrompted(pkey, pkey, G, G).
+event userApproved(pkey, pkey, G, G).
+event authenticatorFinished(pkey, pkey, G, G).
+event verifierSuccess(pkey, pkey, G, G).
+
+(* ============================ DEVICES ============================ *)
+
+let RegisterV() =
+  new sk_V: skey;
+  let pk_V = pk(sk_V) in
+  insert idV(sk_V, pk_V);
+  out(c, pk_V).
+
+let RegisterA() =
+  new sk_A: skey;
+  let pk_A = pk(sk_A) in
+  insert idA(sk_A, pk_A);
+  out(c, pk_A).
+
+(* The guarantee of SPARK-Pairing, assumed here: only genuine device keys
+   get paired.  The adversary chooses which ones, any number of times. *)
+let Pairing() =
+  in(c, (pk_V: pkey, pk_A: pkey));
+  get idV(sk_V, =pk_V) in
+  get idA(sk_A, =pk_A) in
+  event paired(pk_V, pk_A);
+  insert trusted_V(pk_V, pk_A);
+  insert trusted_A(pk_V, pk_A).
+
+(* ======================== AUTHENTICATION ========================= *)
+
 let Verifier() =
-  (* Get a valid identity or fail *)
   in(c, pk_V: pkey);
-  get identitiesV(sk_V, =pk_V) in
-  
-  (* Only valid key pairs will pass these two lines *)
-  in(c, pk_A: pkey);
-  get trusted_keys(=pk_V, =pk_A) in
-  
-  N <-R nonce;
-  event verifierStarted(pk_V, pk_A, N);
-  payload <- (N, pk_V, pk_A);
-  sig <- sign(payload, sk_V);
-  cipher <- aenc((payload, sig), pk_A);
-  out(c, cipher);
-  
-  in(c, cipher': bitstring);
-  let (payload': bitstring, sig': bitstring) = adec(cipher', sk_V) in
-  if verify(sig', pk_A, payload') then
-    let (=N, =pk_A, =pk_V) = payload' in
-    event verifierSuccess(pk_V, pk_A, N).
+  get idV(sk_V, =pk_V) in
+  get trusted_V(=pk_V, pk_A) in                 (* the paired phone *)
+  new x: exponent;
+  let eV = exp(g, x) in
+  out(c, eV);                                                   (* 1 *)
+  in(c, eA: G);                                                 (* 2 *)
+  let K = kdf(exp(eA, x), (eV, eA, pk_V, pk_A)) in
+  event verifierStarted(pk_V, pk_A, eV, eA);
+  out(c, aead(sign((lreq, eV, eA, pk_V, pk_A), sk_V), K));      (* 3 *)
+  in(c, m4: bitstring);                                         (* 4 *)
+  let sA = aeadDec(m4, K) in
+  if verify(sA, pk_A, (lresp, eV, eA, pk_A, pk_V)) then
+    event verifierSuccess(pk_V, pk_A, eV, eA);
+    new s: bitstring;
+    out(c, aead(s, K)).                      (* forward-secrecy probe *)
 
-(* Authenticator (A) *)
 let Authenticator() =
-  (* Get a valid identity or fail *)
   in(c, pk_A: pkey);
-  get identitiesA(sk_A, =pk_A) in
-  
-  in(c, cipher: bitstring);
-  let (payload: bitstring, sig: bitstring) = adec(cipher, sk_A) in
-  let (N': nonce, pk_V': pkey, =pk_A) = payload in
-  if verify(sig, pk_V', payload) then
-    (* Only trusted verifiers allowed *)
-    get trusted_keys(=pk_V', =pk_A) in
-    
-    (* The phone UI halts and waits for the user to tap the button  *)
-    in(local_authenticator_input, approved: bool);
-    if approved = true then
-      event authenticatorFinished(pk_V', pk_A, N');
-      payload' <- (N', pk_A, pk_V');
-      sig' <- sign(payload', sk_A);
-      cipher' <- aenc((payload', sig'), pk_V');
-      out(c, cipher').
+  get idA(sk_A, =pk_A) in
+  in(c, eV: G);                                                 (* 1 *)
+  new y: exponent;
+  let eA = exp(g, y) in
+  out(c, eA);                                                   (* 2 *)
+  in(c, m3: bitstring);                                         (* 3 *)
+  get trusted_A(pk_V, =pk_A) in          (* trial over paired verifiers *)
+  let K = kdf(exp(eV, y), (eV, eA, pk_V, pk_A)) in
+  let sV = aeadDec(m3, K) in
+  if verify(sV, pk_V, (lreq, eV, eA, pk_V, pk_A)) then
+    (* verify first, prompt second: only genuine requests reach the user *)
+    event authenticatorPrompted(pk_V, pk_A, eV, eA);
+    out(prompt, (pk_V, pk_A, eV, eA));
+    in(approval, (=pk_V, =pk_A, =eV, =eA));
+    event authenticatorFinished(pk_V, pk_A, eV, eA);
+    out(c, aead(sign((lresp, eV, eA, pk_A, pk_V), sk_A), K)).   (* 4 *)
 
-let HumanUser() =
-  (* The human decides to approve the login request *)
-  out(local_authenticator_input, true).
+(* The user approves whatever the phone shows: the worst case for fatigue *)
+let User() =
+  in(prompt, (v: pkey, a: pkey, eV: G, eA: G));
+  event userApproved(v, a, eV, eA);
+  out(approval, (v, a, eV, eA)).
 
-(* Security Queries *)
-query secret N [reachability].
-query secret N [real_or_random].
+(* ============================ QUERIES ============================ *)
 
-query p1: pkey, p2: pkey, n: nonce; 
-  inj-event(verifierSuccess(p1, p2, n)) ==> inj-event(authenticatorFinished(p1, p2, n)).
+(* 1. An unlock matches a completed phone session, one-to-one *)
+query v: pkey, a: pkey, eV: G, eA: G;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(authenticatorFinished(v, a, eV, eA)).
 
-query p1: pkey, p2: pkey, n: nonce; 
-  event(authenticatorFinished(p1, p2, n)) ==> event(verifierStarted(p1, p2, n)).
+(* 2. The phone completes only sessions a paired verifier started, one-to-one *)
+query v: pkey, a: pkey, eV: G, eA: G;
+  inj-event(authenticatorFinished(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
 
-(*
- * This fails leading the authenticator to continuously prompt requests to the
- * human user/authenticator. However, this is not an actual attack to the
- * authentication, as those authentications won't be accepted by a verifier
- * who's not listening anymore.
- *
- * A clena solution in practice to avoid it is to use monotonic counters,
- * (e.g., 64-bit long).
- *)
-query p1: pkey, p2: pkey, n: nonce; 
-  inj-event(authenticatorFinished(p1, p2, n)) ==> inj-event(verifierStarted(p1, p2, n)).
+(* 3. No replayed or forged request reaches the user: no approval fatigue,
+      and no counter needed *)
+query v: pkey, a: pkey, eV: G, eA: G;
+  inj-event(authenticatorPrompted(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
+
+(* 4. Every unlock is backed by a distinct approval of that very session *)
+query v: pkey, a: pkey, eV: G, eA: G;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(userApproved(v, a, eV, eA)).
+
+(* 5. Logins happen only between paired devices *)
+query v: pkey, a: pkey, eV: G, eA: G;
+  event(verifierSuccess(v, a, eV, eA)) ==> event(paired(v, a)).
+query v: pkey, a: pkey, eV: G, eA: G;
+  event(authenticatorFinished(v, a, eV, eA)) ==> event(paired(v, a)).
+
+(* 6. Forward secrecy of the session key of completed logins:
+      reachability (weak) and real-or-random (strong), reported separately *)
+query secret s.
+query secret s [real_or_random].
 
 process
-  sk_V1 <-R skey; pk_V1 <- pk(sk_V1);
-  sk_V2 <-R skey; pk_V2 <- pk(sk_V2);
-  sk_A1 <-R skey; pk_A1 <- pk(sk_A1);
-  sk_A2 <-R skey; pk_A2 <- pk(sk_A2);
-  sk_A3 <-R skey; pk_A3 <- pk(sk_A3);
-  insert identitiesV(sk_V1, pk_V1);
-  insert identitiesV(sk_V2, pk_V2);
-  insert identitiesA(sk_A1, pk_A1);
-  insert identitiesA(sk_A2, pk_A2);
-  insert identitiesA(sk_A3, pk_A3);
-  
-  (* Make public keys public - required for getting identities *)
-  out(c, (pk_V1, pk_V2, pk_A1, pk_A2));
-  
-  (*
-   * Simulate successful OOB setups with trust configurations.
-   * - we do not insert trusted_keys(pk_V2, pk_A2);
-   * - we do not involve A3
-   *)
-  insert trusted_keys(pk_V1, pk_A1);
-  insert trusted_keys(pk_V1, pk_A2);
-  insert trusted_keys(pk_V2, pk_A1);
-  
-  ( !Verifier() | !Authenticator() | !HumanUser() )
+    ( !RegisterV() | !RegisterA() | !Pairing()
+    | !Verifier() | !Authenticator() | !User() )
+  | ( phase 1;
+      ( (! get idV(skv, pkv) in out(c, skv))
+      | (! get idA(ska, pka) in out(c, ska)) ) )

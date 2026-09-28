@@ -1,0 +1,2 @@
+[ -n "$SPARK_SKIP_DOCKER_BUILD" ] || docker build -f ProVerif.dockerfile -t proverif:2.05 .
+docker run --rm -v "$(pwd)":/artifact proverif:2.05 ./spark-setup-grinding.pv

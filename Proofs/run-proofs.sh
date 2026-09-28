@@ -16,11 +16,14 @@ run() {
 }
 
 run "run-proverif-setup.sh"
+run "run-proverif-setup-grinding.sh"
 run "run-proverif-remote.sh"
 run "run-easycrypt.sh"
 
-echo -e "\nSetup ProVerif:"
+echo -e "\nSetup ProVerif (two-nonce SAS, expect all queries true):"
 grep -h "^RESULT" logs/run-proverif-setup.log 2>/dev/null || echo "none found"
+echo -e "\nSetup ProVerif, grinding model (single-nonce SAS, expect 'is false' -- this is the attack, not a tool failure):"
+grep -h "^RESULT" logs/run-proverif-setup-grinding.log 2>/dev/null || echo "none found"
 echo -e "\nRemote ProVerif:"
 grep -h "^RESULT" logs/run-proverif-remote.log 2>/dev/null || echo "none found"
 echo -e "\nEasyCrypt:"

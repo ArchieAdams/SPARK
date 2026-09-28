@@ -20,24 +20,23 @@ type commitment.
 fun pk(skey): pkey.
 
 (* Hash function for the Short Authentication String *)
-fun sas(pkey, pkey, bitstring, nonce): bitstring.
+fun sas(pkey, pkey, bitstring): bitstring.
 
 (* Explicit Commitment function for the Nonce *)
 fun commit(bitstring): commitment.
 
 (* Grinding attack *)
-fun forgeVkey(pkey, pkey, bitstring, nonce, pkey, nonce): skey.
-fun forgeN(pkey, pkey, bitstring, nonce, pkey, nonce): nonce.
-fun forgeR(pkey, pkey, bitstring, nonce, pkey, nonce): bitstring.
+fun forgeVkey(pkey, pkey, bitstring, pkey): skey.
+fun forgeN(pkey, pkey, bitstring, pkey): nonce.
+fun forgeR(pkey, pkey, bitstring, pkey): bitstring.
 
 fun sasMatch(bitstring, bitstring): bool reduc
     forall x: bitstring;
         sasMatch(x, x) = true
-    otherwise forall v: pkey, m: pkey, b: bitstring, nA': nonce, a: pkey, nA: nonce;
-        sasMatch( sas(v, m, b, nA'),
-                  sas(pk(forgeVkey(v, m, b, nA', a, nA)), a,
-                      (forgeN(v, m, b, nA', a, nA), forgeR(v, m, b, nA', a, nA)),
-                      nA) ) = true.
+    otherwise forall v: pkey, m: pkey, b: bitstring, a: pkey;
+        sasMatch( sas(v, m, b),
+                  sas(pk(forgeVkey(v, m, b, a)), a,
+                      (forgeN(v, m, b, a), forgeR(v, m, b, a))) ) = true.
 
 (* Events to track the state of the entities *)
 event verifierGenerated(pkey, pkey, bitstring).
@@ -52,9 +51,9 @@ let Verifier() =
   
   new r :bitstring;
   out(c, (pk_V, commit((N,r))));
-  in(c, (pk_A': pkey, nA': nonce)) [precise];
+  in(c, pk_A': pkey) [precise];
   out(c, (N,r));
-  let sas_V = sas(pk_V, pk_A', (N, r), nA') in
+  let sas_V = sas(pk_V, pk_A', (N, r)) in
   event verifierGenerated(pk_V, pk_A', sas_V);
   out(visual_channel_V, sas_V).
 
@@ -66,10 +65,9 @@ let Authenticator() =
   
   out(c, pk_A);
   in(c, (pk_V': pkey, c': commitment));
-  new nA: nonce;
   in(c, (N': nonce, r': bitstring));
   if commit((N', r')) = c' then
-    let sas_A = sas(pk_V', pk_A, (N', r'), nA) in
+    let sas_A = sas(pk_V', pk_A, (N', r')) in
     event authenticatorGenerated(pk_V', pk_A, sas_A);
     out(visual_channel_A, sas_A).
 

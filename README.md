@@ -37,8 +37,9 @@ Run `./quickstart.sh` from the repo root to check the Proofs and PAM components 
 The `Proofs` directory contains the formal verification proofs for the SPARK protocol, implemented using ProVerif and EasyCrypt.
 
 The `Proofs` directory contains the following files:
-- `spark-setup.pv`: ProVerif model of the SPARK setup phase.
-- `spark-remote.pv`: ProVerif model of the SPARK authentication phase.
+- `spark-setup.pv`: ProVerif model of the SPARK setup phase (two-nonce SAS).
+- `spark-setup-grinding.pv`: the same model with a single-nonce SAS, reconstructing the man-in-the-middle grinding attack the two-nonce fix closes (Section 5.2.4).
+- `spark-remote.pv`: ProVerif model of the SPARK authentication phase, composed with pairing.
 - `HashCommit.ec`: EasyCrypt model of the hash commitment scheme used in SPARK.
 
 In order to run the proofs, you will need to have ProVerif and EasyCrypt installed **or** docker.
@@ -50,6 +51,9 @@ In order to run the proofs, you will need to have ProVerif and EasyCrypt install
 3. Run the following command to execute the ProVerif proofs:
    ```bash
    proverif spark-setup.pv
+   ```
+   ```bash
+   proverif spark-setup-grinding.pv
    ```
    ```bash
    proverif spark-remote.pv
@@ -69,28 +73,39 @@ We have made some simple bash scripts to run the proofs in a Docker container. T
     ```bash
     ./run-proofs.sh
     ```
-   You can also run each proof individually with `./run-proverif-setup.sh`, `./run-proverif-remote.sh` and `./run-easycrypt.sh`.
+   You can also run each proof individually with `./run-proverif-setup.sh`, `./run-proverif-setup-grinding.sh`, `./run-proverif-remote.sh` and `./run-easycrypt.sh`.
 
 
 #### Expected output
 
-The ProVerif proofs print one `RESULT` line per security query. `spark-setup.pv` should end with:
+The ProVerif proofs print one `RESULT` line per security query. `spark-setup.pv` (two-nonce SAS) should end with:
 
 ```
 RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is true.
 ```
 
-and `spark-remote.pv` should print:
+`spark-setup-grinding.pv`, the single-nonce SAS variant, should print the same query as **false**:
 
 ```
-RESULT Query secret N [real_or_random] encoded as equivalence is true.
-RESULT secret N is true.
-RESULT inj-event(verifierSuccess(p1,p2,n)) ==> inj-event(authenticatorFinished(p1,p2,n)) is true.
-RESULT event(authenticatorFinished(p1,p2,n)) ==> event(verifierStarted(p1,p2,n)) is true.
-RESULT inj-event(authenticatorFinished(p1,p2,n)) ==> inj-event(verifierStarted(p1,p2,n)) is false.
+RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is false.
 ```
 
-The final `is false` is expected: it is the one deliberately non-injective query in the paper (a replayed challenge makes the authenticator re-sign, which the verifier then rejects), so it is a pass, not a failure.
+This is expected, not a failure: it is the man-in-the-middle grinding attack the two-nonce fix closes (Section 5.2.4).
+
+`spark-remote.pv` should print:
+
+```
+RESULT Query secret s [real_or_random] encoded as equivalence is true.
+RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(authenticatorPrompted(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(userApproved(v_1,a_1,eV_3,eA_3)) is true.
+RESULT event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> event(paired(v_1,a_1)) is true.
+RESULT event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> event(paired(v_1,a_1)) is true.
+RESULT secret s is true.
+```
+
+All seven queries should hold, including the two "paired" queries confirming the composed pairing+authentication check (Section 5.1).
 
 The EasyCrypt proof succeeds if it exits without errors the `run-easycrypt.sh` script checks this for you and prints `Clean pass`.
 

@@ -19,21 +19,24 @@ The app/PAM implementation now relies on the verifier nonce and ephemeral X25519
 
 ### Functional outcomes
 
-- **F1**: SPARK-Pairing establishes agreement on the exchanged keys (Table 2, row 1: `e_UVer ⟹ e_VGen ∧ e_AGen`). Verified by `Proofs/spark-setup.pv`.
-- **F2**: the authentication challenge stays secret (Table 2, row 2). Verified by `Proofs/spark-remote.pv` (`secret N` results).
-- **F3**: unlock authenticates the paired device exactly once, injective agreement (Table 2, row 3: `e_VSuc ⟹inj e_AFin`). Verified by `Proofs/spark-remote.pv`.
-- **F4**: the authenticator replies only to genuine challenges (Table 2, row 4: `e_AFin ⟹ e_VSta`). Verified by `Proofs/spark-remote.pv`.
-- **F5**: the dual injective-agreement query is benign-false (Table 2, lone ○). A replayed challenge makes the authenticator re-sign, but the verifier rejects the stale response, so no double-unlock occurs. Verified by `Proofs/spark-remote.pv` (last `RESULT ... is false` line).
-- **F6**: the hash commitment used in SPARK-Pairing is correct, binding, and hiding (Theorem 1). Verified by `Proofs/HashCommit.ec`.
-- **F7**: the PAM implementation (frame codec, communication) matches its the specification. Verified by the `ctest` suite in `PAM/tests`.
+- **F1**: two-nonce SAS pairing establishes agreement on the exchanged keys, no key substitution (Table 2, pairing row 1). Verified by `Proofs/spark-setup.pv`.
+- **F2**: the single-nonce SAS (the earlier, vulnerable design) admits the grinding man-in-the-middle described in Section 5.2.4 — the same query as F1 is *false* here, which is the expected outcome, not a tool failure (Table 2, pairing row 2, ○). Verified by `Proofs/spark-setup-grinding.pv`.
+- **F3**: unlock matches a completed phone session, once, injective agreement (Table 2, authentication row 1: `verifierSuccess ⟹inj authenticatorFinished`). Verified by `Proofs/spark-remote.pv`.
+- **F4**: the phone completes only sessions a paired verifier started, once, injective agreement (Table 2, row 2: `authenticatorFinished ⟹inj verifierStarted`). Verified by `Proofs/spark-remote.pv`.
+- **F5**: no replayed or forged request reaches the user, injective agreement (Table 2, row 3: `authenticatorPrompted ⟹inj verifierStarted`). Verified by `Proofs/spark-remote.pv`.
+- **F6**: every unlock has a distinct approval of that session, injective agreement (Table 2, row 4: `verifierSuccess ⟹inj userApproved`). Verified by `Proofs/spark-remote.pv`.
+- **F7**: login only between devices paired with each other, agreement (Table 2, row 5: the two `... ⟹ paired(...)` queries). Verified by `Proofs/spark-remote.pv` (composed with pairing).
+- **F8**: session keys stay secret after later key compromise, forward secrecy, both in the reachability sense and the stronger real-or-random sense (Table 2, rows 6-7). Verified by `Proofs/spark-remote.pv` (`secret s` results).
+- **F9**: the hash commitment used in SPARK-Pairing is correct, binding, and hiding (Theorem 1). Verified by `Proofs/HashCommit.ec`.
+- **F10**: the PAM implementation (frame codec, communication) matches its specification. Verified by the `ctest` suite in `PAM/tests`.
 
 ## A.2 Quick start
 
 Directory overview:
 
 - `quickstart.sh`: runs the Proofs and PAM components end-to-end for a sanity check.
-- `Proofs`: ProVerif and EasyCrypt models, Docker scripts. Backs F1-F6.
-- `PAM`: verifier daemon and PAM module (C, cmake). Backs F7. `quickstart.sh` builds and tests it via `PAM/PAM.dockerfile`.
+- `Proofs`: ProVerif and EasyCrypt models, Docker scripts. Backs F1-F9.
+- `PAM`: verifier daemon and PAM module (C, cmake). Backs F10. `quickstart.sh` builds and tests it via `PAM/PAM.dockerfile`.
 - `App`: companion Android app. Out of scope for this evaluation, see A.1.
 
 Run:
@@ -52,17 +55,25 @@ This builds and runs the Proofs (via Docker, `Proofs/run-proofs.sh`) and builds 
    RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is true.
    ```
    This confirms **F1**.
-3. Check the ProVerif output for `spark-remote.pv`:
+3. Check the ProVerif output for `spark-setup-grinding.pv`:
    ```
-   RESULT Query secret N [real_or_random] encoded as equivalence is true.
-   RESULT secret N is true.
-   RESULT inj-event(verifierSuccess(p1,p2,n)) ==> inj-event(authenticatorFinished(p1,p2,n)) is true.
-   RESULT event(authenticatorFinished(p1,p2,n)) ==> event(verifierStarted(p1,p2,n)) is true.
-   RESULT inj-event(authenticatorFinished(p1,p2,n)) ==> inj-event(verifierStarted(p1,p2,n)) is false.
+   RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is false.
    ```
-   The first two `secret N` lines confirm **F2**. The third line confirms **F3**. The fourth confirms **F4**. The final `is false` line is expected and confirms **F5** (see the paper, Section 5.2, "benign" discussion).
-4. Check the EasyCrypt output prints `Clean pass`. This confirms **F6**.
-5. Check the `ctest` output: all PAM unit tests (frame codec, comms, crypto envelope) pass. This confirms **F7**.
+   The `is false` here is the expected outcome, not a tool failure: it reconstructs the grinding attack the two-nonce design in F1 closes. This confirms **F2**.
+4. Check the ProVerif output for `spark-remote.pv`:
+   ```
+   RESULT Query secret s [real_or_random] encoded as equivalence is true.
+   RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) is true.
+   RESULT inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+   RESULT inj-event(authenticatorPrompted(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+   RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(userApproved(v_1,a_1,eV_3,eA_3)) is true.
+   RESULT event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> event(paired(v_1,a_1)) is true.
+   RESULT event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> event(paired(v_1,a_1)) is true.
+   RESULT secret s is true.
+   ```
+   Lines 2-5 confirm **F3**-**F6** in order. The two `paired` lines confirm **F7**. The first and last lines (both `secret s`) confirm **F8**.
+5. Check the EasyCrypt output prints `Clean pass`. This confirms **F9**.
+6. Check the `ctest` output: all PAM unit tests (frame codec, comms, crypto envelope) pass. This confirms **F10**.
 
 Reviewers who want to exercise the PAM module interactively, rather than just its unit tests, can also use `pamtester` on a local, natively-built install per the README's PAM section. This requires a paired phone, so it's not part of the headless functional evaluation.
 
