@@ -9,6 +9,11 @@
 #include "websocket.h"
 #include "../../config_manager.h"
 
+// set by CMake to <source dir>/certs
+#ifndef SPARK_CERT_DIR
+#define SPARK_CERT_DIR "certs"
+#endif
+
 #define MAX_MESSAGES 10
 #define MAX_MESSAGE_SIZE 16384
 
@@ -134,9 +139,8 @@ int ws_init(int port) {
     // after Bluetooth wins the dual connect), so only the vhost gets it.
     info.options |= LWS_SERVER_OPTION_ALLOW_LISTEN_SHARE | LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
-    // Corrected paths to match your project root
-    info.ssl_cert_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.crt";
-    info.ssl_private_key_filepath = "/home/archiea/AndroidStudioProjects/SPARK/PAM/certs/server.key";
+    info.ssl_cert_filepath = SPARK_CERT_DIR "/server.crt";
+    info.ssl_private_key_filepath = SPARK_CERT_DIR "/server.key";
 
     int devnull = open("/dev/null", O_WRONLY);
     if (devnull != -1) {

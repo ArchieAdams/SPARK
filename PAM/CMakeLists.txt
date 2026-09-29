@@ -15,6 +15,8 @@ pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
 pkg_check_modules(TSS2_ESYS REQUIRED tss2-esys)
 
+add_compile_definitions(SPARK_CERT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/certs")
+
 enable_testing()
 
 set(COMMON_SOURCES

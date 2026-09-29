@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    const char *username = (argc > 1) ? argv[1] : "archiea";
+    const char *username = (argc > 1) ? argv[1] : (getenv("SUDO_USER") ? getenv("SUDO_USER") : getenv("USER"));
 
     if (config_manager_init() != 0) {
         custom_log(LOG_ERR, TAG, "Failed to initialize config manager\n");
