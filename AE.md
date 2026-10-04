@@ -13,9 +13,12 @@ The empirical latency results (Section 5.3) require an android device in order t
 
 We do not claim Reusable. `pam_authenticator.so` is a standard PAM module and could be wired into any PAM-aware service (`sudo`, `sshd`, a display manager) beyond the OS-login case in the paper, with no new code. We omit the claim because demonstrating it needs a paired Android device and we can't guarantee reviewers will have compatible hardware to hand.
 
-### Known limitation: EC refresh
+### Known limitations
 
-The app/PAM implementation now relies on the verifier nonce and ephemeral X25519 exchange for freshness. The proof model is unchanged for now and can be updated separately.
+- The models abstract AES-GCM as ideal encryption. The code uses one key and a separate IV per direction, so no GCM nonce is reused.
+- The SAS is 30 bits (six emoji), and `sas` is modelled as collision-free. The pairing server allows 3 attempts per run, so an online guess succeeds with probability about 2^-30 per attempt.
+- `SETUP_REQ` (device id and port) is outside the models and not covered by the SAS. PAM validates both, and later authentication is signature-checked.
+- The ProVerif models cover the protocol, not the Android UI or Bluetooth transport. The app and PAM tests exercise the code, not the full phone flow.
 
 ### Functional outcomes
 
@@ -60,7 +63,7 @@ This builds and runs the Proofs (via Docker, `Proofs/run-proofs.sh`) and builds 
    RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is false.
    ```
    The `is false` here is the expected outcome, not a tool failure: it reconstructs the grinding attack the two-nonce design in F1 closes. This confirms **F2**.
-4. Check the ProVerif output for `spark-auth.pv`. `spark.pv` (full composition) prints the same lines plus the pairing query, and `paired(v,a)` is replaced by `verifierPaired(v,a) && authenticatorPaired(v,a)`:
+4. Check the ProVerif output for `spark-auth.pv`:
    ```
    RESULT Query secret s [real_or_random] encoded as equivalence is true.
    RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) is true.
@@ -71,9 +74,11 @@ This builds and runs the Proofs (via Docker, `Proofs/run-proofs.sh`) and builds 
    RESULT event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> event(paired(v_1,a_1)) is true.
    RESULT secret s is true.
    ```
+   `spark.pv` (pairing composed with authentication) prints the same results plus the pairing query, with `paired(v,a)` replaced by `verifierPaired(v,a) && authenticatorPaired(v,a)`. Its expected output is in `Proofs/expected/spark.results`.
+
    Lines 2-5 confirm **F3**-**F6** in order. The two `paired` lines confirm **F7**. The first and last lines (both `secret s`) confirm **F8**.
 5. Check the EasyCrypt output prints `Clean pass`. This confirms **F9**.
-6. Check the `ctest` output: all PAM unit tests (frame codec, comms, crypto envelope) pass. This confirms **F10**.
+6. Check the `ctest` output: all PAM unit tests (frame codec, comms, crypto envelope, recovery) pass. This confirms **F10**.
 
 Reviewers who want to exercise the PAM module interactively, rather than just its unit tests, can also use `pamtester` on a local, natively-built install per the README's PAM section. This requires a paired phone, so it's not part of the headless functional evaluation.
 
