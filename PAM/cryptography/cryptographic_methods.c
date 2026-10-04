@@ -94,9 +94,12 @@ static void hkdf_expand_label(const unsigned char *secret, const char *label,
 
 void crypto_derive_response_key_iv(const unsigned char shared_secret[32],
                                    const unsigned char *transcript, size_t transcript_len,
-                                   unsigned char key[32], unsigned char iv[12]) {
+                                   unsigned char key[32], unsigned char iv_req[12],
+                                   unsigned char iv_resp[12]) {
+    // One key, two IVs: c3 (V->A) and c4 (A->V) must never share a (key, IV) pair under GCM
     hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 key", transcript, transcript_len, key, 32);
-    hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 nonce", transcript, transcript_len, iv, 12);
+    hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 nonce req", transcript, transcript_len, iv_req, 12);
+    hkdf_expand_label(shared_secret, "SPARK-AUTH-v2 nonce resp", transcript, transcript_len, iv_resp, 12);
 }
 
 int crypto_aead_encrypt(const unsigned char key[32], const unsigned char iv[12],

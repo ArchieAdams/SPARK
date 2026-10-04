@@ -23,7 +23,8 @@ void crypto_derive_response_key_iv(const unsigned char shared_secret[32],
                                    const unsigned char *transcript,
                                    size_t transcript_len,
                                    unsigned char key[32],
-                                   unsigned char iv[12]);
+                                   unsigned char iv_req[12],
+                                   unsigned char iv_resp[12]);
 
 int crypto_aead_encrypt(const unsigned char key[32], const unsigned char iv[12],
                         const unsigned char *plaintext, size_t plaintext_len,

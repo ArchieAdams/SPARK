@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "cryptography/cryptographic_methods.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <openssl/evp.h>
@@ -44,9 +45,9 @@ static void test_x25519_aead_roundtrip(void) {
     TEST_ASSERT_EQUAL_MEMORY(a_secret, b_secret, 32);
 
     unsigned char key[32];
-    unsigned char iv[12];
+    unsigned char iv[12], iv_resp[12];
     unsigned char transcript[] = "transcript-test-data-aad";
-    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv);
+    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv, iv_resp);
 
     unsigned char plaintext[] = "hello spark";
     unsigned char ciphertext[128];
@@ -75,9 +76,9 @@ static void test_tampered_ciphertext_fails(void) {
     TEST_ASSERT_EQUAL(1, crypto_derive_x25519_secret(a_priv, b_pub, a_secret));
 
     unsigned char key[32];
-    unsigned char iv[12];
+    unsigned char iv[12], iv_resp[12];
     unsigned char transcript[] = "transcript-test-data-aad";
-    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv);
+    crypto_derive_response_key_iv(a_secret, transcript, sizeof(transcript), key, iv, iv_resp);
 
     unsigned char plaintext[] = "hello spark";
     unsigned char ciphertext[128];
@@ -93,11 +94,46 @@ static void test_tampered_ciphertext_fails(void) {
     EVP_PKEY_free(b_priv);
 }
 
+static void hex_to_bytes(const char *hex, unsigned char *out) {
+    for (size_t i = 0; hex[2 * i]; i++) {
+        unsigned int b;
+        sscanf(hex + 2 * i, "%2x", &b);
+        out[i] = (unsigned char)b;
+    }
+}
+
+static void test_derive_known_vector_and_iv_separation(void) {
+    unsigned char secret[32];
+    for (int i = 0; i < 32; i++)
+        secret[i] = (unsigned char)i;
+    const unsigned char *transcript = (const unsigned char *)"SPARK-AUTH-v2-test-transcript";
+    size_t tlen = strlen((const char *)transcript);
+
+    unsigned char key[32], iv_req[12], iv_resp[12];
+    crypto_derive_response_key_iv(secret, transcript, tlen, key, iv_req, iv_resp);
+
+    unsigned char exp_key[32], exp_req[12], exp_resp[12];
+    hex_to_bytes("ca4e4ee73b127e36bd95ad6ed8e0be61ce0d562dba598a9c3585771f10c683b9", exp_key);
+    hex_to_bytes("e46e025fd6e05368ef8ea3ea", exp_req);
+    hex_to_bytes("c728509f567da7c1ee1ed86c", exp_resp);
+    TEST_ASSERT_EQUAL_MEMORY(exp_key, key, 32);
+    TEST_ASSERT_EQUAL_MEMORY(exp_req, iv_req, 12);
+    TEST_ASSERT_EQUAL_MEMORY(exp_resp, iv_resp, 12);
+
+    unsigned char pt[] = "hello spark";
+    unsigned char ct[64], out[64];
+    size_t ct_len = sizeof(ct), out_len = sizeof(out);
+    TEST_ASSERT_EQUAL(1, crypto_aead_encrypt(key, iv_req, pt, sizeof(pt) - 1, transcript, tlen, ct, &ct_len));
+    TEST_ASSERT_EQUAL(1, crypto_aead_decrypt(key, iv_req, ct, ct_len, transcript, tlen, out, &out_len));
+    TEST_ASSERT_EQUAL(0, crypto_aead_decrypt(key, iv_resp, ct, ct_len, transcript, tlen, out, &out_len));
+}
+
 int main(void) {
     UnityBegin("crypto_envelope_tests");
     RUN_TEST(test_ec_signature_roundtrip);
     RUN_TEST(test_x25519_aead_roundtrip);
     RUN_TEST(test_tampered_ciphertext_fails);
+    RUN_TEST(test_derive_known_vector_and_iv_separation);
     UnityEnd();
     return UnityTestsFailed == 0 ? 0 : 1;
 }

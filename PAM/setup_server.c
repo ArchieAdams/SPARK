@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "communication/websocket/websocket_service.h"
+#include "communication/messages.h"
 #include "config_manager.h"
 #include "cryptography/key_manager.h"
 
@@ -169,9 +170,19 @@ static void *setup_worker(void *arg) {
         return NULL;
     }
 
-    strncpy(id, cJSON_GetObjectItem(req, "device_id")->valuestring, 255);
-    strncpy(phone_pub, cJSON_GetObjectItem(req, "public_key")->valuestring, 4095);
-    port = cJSON_GetObjectItem(req, "port")->valueint;
+    cJSON *j_id = cJSON_GetObjectItem(req, "device_id");
+    cJSON *j_pub = cJSON_GetObjectItem(req, "public_key");
+    cJSON *j_port = cJSON_GetObjectItem(req, "port");
+    if (!cJSON_IsString(j_id) || !cJSON_IsString(j_pub) || !cJSON_IsNumber(j_port) ||
+        !msg_uuid_str_valid(j_id->valuestring) || j_port->valueint < 1 || j_port->valueint > 65535) {
+        cJSON_Delete(req);
+        finish(-1, "Invalid request");
+        return NULL;
+    }
+    strncpy(id, j_id->valuestring, 255);
+    strncpy(phone_pub, j_pub->valuestring, 4095);
+    phone_pub[4095] = '\0';
+    port = j_port->valueint;
     cJSON_Delete(req);
 
     if (!get_pc_public_key(pc_pub, sizeof(pc_pub))) {
@@ -207,15 +218,12 @@ static void *setup_worker(void *arg) {
     compute_sas(nonce, pc_pub, phone_pub, sas);
     printf("\nPairing Code: %s\n", sas);
 
-    const char *env = getenv("AUTHAPP_SAS_APPROVE");
-    if (!(env && (strcasecmp(env, "Y") == 0 || strcmp(env, "1") == 0))) {
-        printf("Confirm match? (y/n): ");
-        fflush(stdout);
-        int choice = getchar();
-        if (choice != 'y' && choice != 'Y') {
-            finish(-1, "User rejected");
-            return NULL;
-        }
+    printf("Confirm match? (y/n): ");
+    fflush(stdout);
+    int choice = getchar();
+    if (choice != 'y' && choice != 'Y') {
+        finish(-1, "User rejected");
+        return NULL;
     }
 
     config_manager_write_device(id, port);

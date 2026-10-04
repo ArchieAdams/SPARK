@@ -14,41 +14,11 @@
 #include <stdlib.h>
 #include <sys/syslog.h>
 #include <pthread.h>
-#include "time_utils.h"
 
 #define AUTH_RESPONSE_TIMEOUT_SEC 60
 #define AUTH_RESPONSE_POLL_MS 100
 
 static const char* TAG = "phone_connection";
-
-#define MAX_PHASES 8
-static double auth_start_ms = 0;
-static struct { const char *name; double start_ms; double end_ms; } phases[MAX_PHASES];
-static int phase_count = 0;
-
-static void phase_begin(const char *name) {
-    if (phase_count >= MAX_PHASES) return;
-    phases[phase_count].name = name;
-    phases[phase_count].start_ms = now_ms() - auth_start_ms;
-}
-
-static void phase_end(void) {
-    if (phase_count >= MAX_PHASES) return;
-    phases[phase_count].end_ms = now_ms() - auth_start_ms;
-    phase_count++;
-}
-
-static void phase_dump(void) {
-    char buf[1024];
-    size_t off = 0;
-    off += (size_t)snprintf(buf + off, sizeof(buf) - off, "FLAME [");
-    for (int i = 0; i < phase_count && off < sizeof(buf); i++) {
-        off += (size_t)snprintf(buf + off, sizeof(buf) - off, "%s{\"name\":\"%s\",\"start\":%.0f,\"end\":%.0f}",
-                                 i ? "," : "", phases[i].name, phases[i].start_ms, phases[i].end_ms);
-    }
-    snprintf(buf + off, sizeof(buf) - off, "]");
-    custom_log(LOG_INFO, TAG, "%s", buf);
-}
 
 static void init_outcome(PhoneAuthOutcome *outcome) {
     if (!outcome) return;
@@ -85,26 +55,21 @@ static void phone_disconnect(void) {
 }
 
 PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *outcome) {
-    auth_start_ms = now_ms();
-    phase_count = 0;
     init_outcome(outcome);
     custom_log(LOG_INFO, TAG, "Cleaning up previous auth state");
     auth_verifier_cleanup();
 
     custom_log(LOG_INFO, TAG, "Attempting to connect to device...");
-    phase_begin("discovery_connect");
     if (!phone_connect(device_uuid)) {
         if (outcome) outcome->result = PHONE_AUTH_CONNECT_FAILED;
         return PHONE_AUTH_CONNECT_FAILED;
     }
-    phase_end();
 
     if (outcome) outcome->transport = connection_manager_get_active();
 
     // 1. V -> A : eph_V
     uint8_t ephV[32];
     custom_log(LOG_INFO, TAG, "Initiating Mutual Auth Step 1");
-    phase_begin("step1_sign_local");
     if (!auth_verifier_step1(ephV)) {
         custom_log(LOG_ERR, TAG, "Step 1 failed locally");
         phone_disconnect();
@@ -116,7 +81,6 @@ PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *ou
         phone_disconnect();
         return PHONE_AUTH_CHALLENGE_SEND_FAILED;
     }
-    phase_end();
 
     // 2. A -> V : eph_A
     uint8_t *pbuf = malloc(4096);
@@ -129,7 +93,6 @@ PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *ou
     time_t deadline = time(NULL) + AUTH_RESPONSE_TIMEOUT_SEC;
     int step2_ok = 0;
     custom_log(LOG_INFO, TAG, "Waiting for ephA from phone...");
-    phase_begin("wait_ephA_phone_roundtrip");
     while (time(NULL) < deadline) {
         if (channel_recv(&m, pbuf, 4096, AUTH_RESPONSE_POLL_MS) == 0) {
             if (m.type == MSG_AUTH_EPH_A && m.payload_len == 32) {
@@ -150,14 +113,12 @@ PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *ou
         phone_disconnect();
         return PHONE_AUTH_RESPONSE_FAILED;
     }
-    phase_end();
 
     // 3. V -> A : aead_K( sign_skV( "req" || eph_V || eph_A || pk_V || pk_A ) )
     uint8_t *c3 = malloc(2048);
     if (!c3) { free(pbuf); phone_disconnect(); return PHONE_AUTH_RESPONSE_FAILED; }
     size_t c3_len = 2048;
     custom_log(LOG_INFO, TAG, "Performing Auth Step 3 (Signing & Encrypting Request)");
-    phase_begin("step3_sign_encrypt_local");
     if (!auth_verifier_step3(ephA, c3, &c3_len)) {
         custom_log(LOG_ERR, TAG, "Step 3 failed locally");
         free(pbuf); free(c3);
@@ -172,13 +133,11 @@ PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *ou
         return PHONE_AUTH_CHALLENGE_SEND_FAILED;
     }
     free(c3);
-    phase_end();
 
     // 4. A -> V : aead_K( sign_skA( "resp" || eph_V || eph_A || pk_A || pk_V ) )
     int step4_ok = 0;
     deadline = time(NULL) + AUTH_RESPONSE_TIMEOUT_SEC;
     custom_log(LOG_INFO, TAG, "Waiting for Step 4 response from phone (User Approval)...");
-    phase_begin("wait_step4_approval_phone_roundtrip");
     while (time(NULL) < deadline) {
         if (channel_recv(&m, pbuf, 4096, AUTH_RESPONSE_POLL_MS) == 0) {
             if (m.type == MSG_AUTH_STEP4) {
@@ -204,10 +163,8 @@ PhoneAuthResult phone_authenticate(const char *device_uuid, PhoneAuthOutcome *ou
         if (outcome) outcome->result = PHONE_AUTH_RESPONSE_FAILED;
         return PHONE_AUTH_RESPONSE_FAILED;
     }
-    phase_end();
 
     custom_log(LOG_INFO, TAG, "Authentication complete and verified.");
-    phase_dump();
     if (outcome) {
         memcpy(outcome->response, "SUCCESS", 7);
         outcome->response_len = 7;

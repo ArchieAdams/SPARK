@@ -47,6 +47,9 @@ typedef struct {
 ssize_t msg_encode_setup_req(const uint8_t device_id[MSG_DEVICE_ID_LEN], uint32_t port,
                              uint8_t *out, size_t out_cap);
 int msg_parse_setup_req(const uint8_t *p, size_t len, SetupReq *out);
+// 1 if the device id is not the nil UUID and the port is 1-65535
+int msg_setup_req_valid(const SetupReq *sr);
+int msg_uuid_str_valid(const char *s);
 
 ssize_t msg_encode_commit(const uint8_t *pk_v, uint32_t pk_v_len,
                           const uint8_t c[MSG_COMMIT_HASH_LEN],

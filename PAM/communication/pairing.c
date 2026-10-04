@@ -29,6 +29,11 @@ int pairing_verifier_run(VerifierPairing *v, int timeout_ms) {
     if (m.type != MSG_SETUP_REQ) return -2;
     SetupReq sr;
     if (msg_parse_setup_req(m.payload, m.payload_len, &sr) < 0) return -3;
+    if (!msg_setup_req_valid(&sr)) {
+        n = msg_encode_abort(ABORT_PROTOCOL_ERROR, out, sizeof out);
+        if (n > 0) channel_send(MSG_ABORT, out, (uint32_t)n);
+        return -4;
+    }
     memcpy(v->device_id, sr.device_id, sizeof v->device_id);
     v->port = sr.port;
 

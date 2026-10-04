@@ -28,7 +28,8 @@ typedef struct {
     uint8_t *pkA_der;
     size_t pkA_der_len;
     uint8_t K_GCM[32];
-    uint8_t IV_GCM[12];
+    uint8_t IV_REQ[12];
+    uint8_t IV_RESP[12];
     uint8_t *T;
     size_t T_len;
     int active;
@@ -144,7 +145,7 @@ int auth_verifier_step3(const uint8_t ephA[32], uint8_t *c3, size_t *c3_len) {
         return 0;
     }
 
-    crypto_derive_response_key_iv(Z, session.T, session.T_len, session.K_GCM, session.IV_GCM);
+    crypto_derive_response_key_iv(Z, session.T, session.T_len, session.K_GCM, session.IV_REQ, session.IV_RESP);
 
     size_t m_v_len = 3 + session.T_len;
     uint8_t *m_v = malloc(m_v_len);
@@ -161,7 +162,7 @@ int auth_verifier_step3(const uint8_t ephA[32], uint8_t *c3, size_t *c3_len) {
     }
     free(m_v);
 
-    if (!crypto_aead_encrypt(session.K_GCM, session.IV_GCM, sigV, sigV_len, session.T, session.T_len, c3, c3_len)) {
+    if (!crypto_aead_encrypt(session.K_GCM, session.IV_REQ, sigV, sigV_len, session.T, session.T_len, c3, c3_len)) {
         custom_log(LOG_ERR, TAG, "AEAD encryption of Step 3 failed");
         free(sigV);
         return 0;
@@ -178,7 +179,7 @@ int auth_verifier_step5(const uint8_t *c4, size_t c4_len) {
     if (!sigmaA) return 0;
     size_t sigmaA_len = 1024;
 
-    if (!crypto_aead_decrypt(session.K_GCM, session.IV_GCM, c4, c4_len, session.T, session.T_len, sigmaA, &sigmaA_len)) {
+    if (!crypto_aead_decrypt(session.K_GCM, session.IV_RESP, c4, c4_len, session.T, session.T_len, sigmaA, &sigmaA_len)) {
         custom_log(LOG_ERR, TAG, "AEAD decryption of phone response failed");
         free(sigmaA);
         return 0;

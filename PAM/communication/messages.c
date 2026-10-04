@@ -1,4 +1,5 @@
 #include "messages.h"
+#include <ctype.h>
 #include <string.h>
 
 static void put_u32_be(uint8_t *p, uint32_t v) {
@@ -44,6 +45,24 @@ int msg_parse_setup_req(const uint8_t *p, size_t len, SetupReq *out) {
     memcpy(out->device_id, id, MSG_DEVICE_ID_LEN);
     if (rd_u32(&r, &out->port) < 0) return -1;
     return 0;
+}
+
+int msg_setup_req_valid(const SetupReq *sr) {
+    static const uint8_t nil[MSG_DEVICE_ID_LEN];
+    if (memcmp(sr->device_id, nil, sizeof nil) == 0) return 0;
+    return sr->port >= 1 && sr->port <= 65535;
+}
+
+int msg_uuid_str_valid(const char *s) {
+    if (!s || strlen(s) != 36) return 0;
+    for (int i = 0; i < 36; i++) {
+        if (i == 8 || i == 13 || i == 18 || i == 23) {
+            if (s[i] != '-') return 0;
+        } else if (!isxdigit((unsigned char)s[i])) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 // ---- COMMIT: len(pkV) ‖ pkV ‖ c[32] ----

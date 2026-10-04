@@ -29,6 +29,9 @@
 
 static const char *TAG = "pairing_server";
 
+#define PAIRING_MAX_ATTEMPTS 3
+#define PAIRING_RETRY_DELAY_S 2
+
 #define PKI_DIR "/etc/AuthApp/pki"
 #define PC_HANDLE PKI_DIR "/pc.handle"
 #define PC_PUB PKI_DIR "/pc.pub"
@@ -92,16 +95,9 @@ static int store_phone_pubkey(const char *uuid_str, const uint8_t *der, uint32_t
     return ok ? 0 : -1;
 }
 
-static int sas_auto_approve(void) {
-    const char *env = getenv("AUTHAPP_SAS_APPROVE");
-    return env && (strcasecmp(env, "Y") == 0 || strcmp(env, "1") == 0);
-}
-
 static int terminal_confirm(const char *emoji, void *ctx) {
     (void)ctx;
     printf("\nPairing Emoji: %s\n", emoji);
-    if (sas_auto_approve())
-        return 1;
     printf("Confirm match? (y/n): ");
     fflush(stdout);
     int ch = getchar();
@@ -143,17 +139,15 @@ static int issue_recovery_codes(RecoverySet *r) {
     printf("  %s\n", r->codes[RECOVERY_CODES]);
     fflush(stdout);
 
-    if (!sas_auto_approve()) {
-        int ch;
-        while ((ch = getchar()) != '\n' && ch != EOF) {
-        } // leftover from the y/n
-        printf("\nPress Enter once written down (the screen will be cleared): ");
-        fflush(stdout);
-        while ((ch = getchar()) != '\n' && ch != EOF) {
-        }
-        printf("\033[H\033[2J\033[3J"); // clear + scrollback
-        fflush(stdout);
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    } // leftover from the y/n
+    printf("\nPress Enter once written down (the screen will be cleared): ");
+    fflush(stdout);
+    while ((ch = getchar()) != '\n' && ch != EOF) {
     }
+    printf("\033[H\033[2J\033[3J");
+    fflush(stdout);
     explicit_bzero(r, sizeof *r);
     return 0;
 }
@@ -249,13 +243,25 @@ int pairing_server_run(const char *username) {
     v.pk_v_len = (uint32_t)pkv_len;
     v.confirm = terminal_confirm;
 
-    int rc = pairing_verifier_run(&v, CONFIG_AUTH_TIMEOUT_MS);
+    int rc = -1;
+    for (int attempt = 1; attempt <= PAIRING_MAX_ATTEMPTS; attempt++) {
+        rc = pairing_verifier_run(&v, CONFIG_AUTH_TIMEOUT_MS);
+        if (rc == 0)
+            break;
+        custom_log(LOG_WARNING, TAG, "Pairing attempt %d/%d failed (rc=%d)", attempt,
+                   PAIRING_MAX_ATTEMPTS, rc);
+        if (attempt < PAIRING_MAX_ATTEMPTS)
+            sleep(PAIRING_RETRY_DELAY_S);
+    }
 
     if (rc == 0) {
         char uuid_str[37];
         char mac[19];
         uuid16_to_str(v.device_id, uuid_str);
-        if (discover_bt_mac(uuid_str, mac) != 0) {
+        if (!msg_uuid_str_valid(uuid_str) || v.port < 1 || v.port > 65535) {
+            custom_log(LOG_ERR, TAG, "Invalid device id or port from phone");
+            rc = -1;
+        } else if (discover_bt_mac(uuid_str, mac) != 0) {
             custom_log(LOG_ERR, TAG, "Could not discover phone BT MAC; pairing failed");
             rc = -1;
         } else if (store_phone_pubkey(uuid_str, v.pk_a, v.pk_a_len) != 0) {
@@ -276,7 +282,12 @@ int pairing_server_run(const char *username) {
                              : msg_encode_abort(ABORT_PROTOCOL_ERROR, msg, sizeof msg);
         channel_send(rc == 0 ? MSG_SAS_CONFIRM : MSG_ABORT, msg, (uint32_t)mn);
     } else {
-        custom_log(LOG_ERR, TAG, "Pairing failed (rc=%d)", rc);
+        custom_log(LOG_ERR, TAG, "Pairing aborted after %d failed attempts (rc=%d)",
+                   PAIRING_MAX_ATTEMPTS, rc);
+        uint8_t msg[8];
+        ssize_t mn = msg_encode_abort(ABORT_PROTOCOL_ERROR, msg, sizeof msg);
+        if (mn > 0)
+            channel_send(MSG_ABORT, msg, (uint32_t)mn);
     }
 
     free(pkv);

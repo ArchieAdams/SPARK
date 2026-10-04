@@ -31,13 +31,37 @@ class CryptoMessageHandler(private val context: Context) {
         val Z: ByteArray,
         val T: ByteArray,
         val keyGcm: ByteArray,
-        val ivGcm: ByteArray,
+        val ivReq: ByteArray,
+        val ivResp: ByteArray,
+        val sessionId: String,
         var verifiedStep3: Boolean = false
     )
+
+    class SessionKeys(val key: ByteArray, val ivReq: ByteArray, val ivResp: ByteArray)
 
     companion object {
         private const val TAG = "CryptoHandler"
         private const val GCM_TAG_BITS = 128
+        private const val EPH_LEN = 32
+
+        private fun hkdf(ikm: ByteArray, info: ByteArray, okmLen: Int): ByteArray {
+            val hkdf = HKDFBytesGenerator(SHA256Digest())
+            hkdf.init(HKDFParameters(ikm, null, info))
+            val okm = ByteArray(okmLen)
+            hkdf.generateBytes(okm, 0, okm.size)
+            return okm
+        }
+
+        // One key, two IVs (request / response) so c3 and c4 never share a GCM nonce.
+        internal fun deriveSessionKeys(secret: ByteArray, t: ByteArray) = SessionKeys(
+            hkdf(secret, "SPARK-AUTH-v2 key".toByteArray() + t, 32),
+            hkdf(secret, "SPARK-AUTH-v2 nonce req".toByteArray() + t, 12),
+            hkdf(secret, "SPARK-AUTH-v2 nonce resp".toByteArray() + t, 12)
+        )
+
+        // Identifies a session in the approval prompt: hex(SHA-256(T)).
+        internal fun sessionIdOf(t: ByteArray): String =
+            MessageDigest.getInstance("SHA-256").digest(t).joinToString("") { "%02x".format(it) }
 
         @Volatile
         var currentSession: SessionState? = null
@@ -85,14 +109,6 @@ class CryptoMessageHandler(private val context: Context) {
         return ByteBuffer.allocate(4).putInt(value).array()
     }
 
-    private fun hkdfDerive(ikm: ByteArray, info: ByteArray, okmLen: Int): ByteArray {
-        val hkdf = HKDFBytesGenerator(SHA256Digest())
-        hkdf.init(HKDFParameters(ikm, null, info))
-        val okm = ByteArray(okmLen)
-        hkdf.generateBytes(okm, 0, okm.size)
-        return okm
-    }
-
     private fun aesGcmEncrypt(key: ByteArray, iv: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(GCM_TAG_BITS, iv))
@@ -108,6 +124,9 @@ class CryptoMessageHandler(private val context: Context) {
     }
 
     fun handleStep1(ephV: ByteArray): ByteArray {
+        require(ephV.size == EPH_LEN) { "Bad ephV length ${ephV.size}" }
+        check(currentSession?.verifiedStep3 != true) { "Approval pending" }
+
         val phonePrivate = X25519PrivateKeyParameters(SecureRandom())
         val phonePublic = phonePrivate.generatePublicKey().encoded
 
@@ -121,20 +140,20 @@ class CryptoMessageHandler(private val context: Context) {
         val protocolId = "SPARK-AUTH-v2".toByteArray()
         val t = protocolId + ephV + phonePublic + putBe32(pkV.size) + pkV + putBe32(pkA.size) + pkA
 
-        val infoKey = "SPARK-AUTH-v2 key".toByteArray() + t
-        val infoIv = "SPARK-AUTH-v2 nonce".toByteArray() + t
+        val keys = deriveSessionKeys(secret, t)
 
-        val keyGcm = hkdfDerive(secret, infoKey, 32)
-        val ivGcm = hkdfDerive(secret, infoIv, 12)
-
-        currentSession = SessionState(ephV, phonePrivate, phonePublic, secret, t, keyGcm, ivGcm)
+        currentSession = SessionState(
+            ephV, phonePrivate, phonePublic, secret, t,
+            keys.key, keys.ivReq, keys.ivResp, sessionIdOf(t)
+        )
         return phonePublic
     }
 
     fun handleStep3(c3: ByteArray): Boolean {
         val session = currentSession ?: return false
+        if (session.verifiedStep3) return false
         try {
-            val sigV = aesGcmDecrypt(session.keyGcm, session.ivGcm, session.T, c3)
+            val sigV = aesGcmDecrypt(session.keyGcm, session.ivReq, session.T, c3)
             val mV = "req".toByteArray() + session.T
 
             val verifier = Signature.getInstance("SHA256withECDSA")
@@ -151,9 +170,9 @@ class CryptoMessageHandler(private val context: Context) {
         return false
     }
 
-    fun handleStep4(): ByteArray? {
+    fun handleStep4(sessionId: String): ByteArray? {
         val session = currentSession ?: return null
-        if (!session.verifiedStep3) return null
+        if (!session.verifiedStep3 || session.sessionId != sessionId) return null
         try {
             val pkA = getPkADer()
             val pkV = getPkVDer()
@@ -166,7 +185,7 @@ class CryptoMessageHandler(private val context: Context) {
             signer.update(mA)
             val sigmaA = signer.sign()
 
-            val c4 = aesGcmEncrypt(session.keyGcm, session.ivGcm, session.T, sigmaA)
+            val c4 = aesGcmEncrypt(session.keyGcm, session.ivResp, session.T, sigmaA)
             return c4
         } catch (e: Exception) {
             Log.e(TAG, "Step 4 processing failed", e)

@@ -63,6 +63,7 @@ class ConnectionForegroundService : Service(), ConnectionListener {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        clearPendingAuth()
 
         val filter = IntentFilter().apply {
             addAction(LoginApprovalActivity.ACTION_APPROVED)
@@ -76,12 +77,18 @@ class ConnectionForegroundService : Service(), ConnectionListener {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 LoginApprovalActivity.ACTION_APPROVED -> {
-                    val challenge = intent.getStringExtra(LoginApprovalActivity.EXTRA_RESULT_CHALLENGE) ?: pendingChallenge
+                    val sessionId = intent.getStringExtra(LoginApprovalActivity.EXTRA_RESULT_CHALLENGE)
+                    // Only sign if the approval is for the session actually pending
+                    if (sessionId == null || sessionId != getPendingAuthChallenge()) {
+                        Log.w(TAG, "Ignoring approval for unknown session")
+                        return
+                    }
                     clearPendingAuth()
-                    processApprovedChallenge()
+                    processApprovedChallenge(sessionId)
                 }
                 LoginApprovalActivity.ACTION_DENIED -> {
                     clearPendingAuth()
+                    CryptoMessageHandler.currentSession = null
                     channel?.send(MsgType.MSG_ABORT, byteArrayOf(0))
                     uiMessageListener?.onMessage("✗ Login request denied")
                 }
@@ -123,6 +130,7 @@ class ConnectionForegroundService : Service(), ConnectionListener {
     }
 
     private fun stopConnections() {
+        CryptoMessageHandler.currentSession = null
         channel?.close()
         channel = null
         connectionManager?.destroy()
@@ -141,13 +149,14 @@ class ConnectionForegroundService : Service(), ConnectionListener {
                 }
             }
             MsgType.MSG_AUTH_STEP3 -> {
-                if (!CryptoMessageHandler(this).handleStep3(m.payload)) {
+                val handler = CryptoMessageHandler(this)
+                if (!handler.handleStep3(m.payload)) {
                     uiMessageListener?.onMessage("✗ Ignored invalid login request")
                     channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
                 } else {
-                    val challengeHex = m.payload.toHex()
-                    storePendingAuth(challengeHex, pendingDeviceLabel ?: "Linked PC")
-                    showLoginApprovalScreen(challengeHex)
+                    val sessionId = CryptoMessageHandler.currentSession!!.sessionId
+                    storePendingAuth(sessionId, pendingDeviceLabel ?: "Linked PC")
+                    showLoginApprovalScreen(sessionId)
                     uiMessageListener?.onMessage("⏳ Login request received")
                 }
             }
@@ -189,10 +198,10 @@ class ConnectionForegroundService : Service(), ConnectionListener {
         startActivity(intent)
     }
 
-    private fun processApprovedChallenge() {
+    private fun processApprovedChallenge(sessionId: String) {
         try {
             val handler = CryptoMessageHandler(this)
-            val response = handler.handleStep4()
+            val response = handler.handleStep4(sessionId)
             if (response != null) {
                 channel?.send(MsgType.MSG_AUTH_STEP4, response)
                 uiMessageListener?.onMessage("✓ Login approved")

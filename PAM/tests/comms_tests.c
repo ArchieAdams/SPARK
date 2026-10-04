@@ -50,9 +50,28 @@ static void test_sas_vector(void) {
     printf("SAS vector for test: %s\n", sas);
 }
 
+static void test_setup_req_validation(void) {
+    SetupReq sr = {{1}, 8080};
+    assert(msg_setup_req_valid(&sr));
+    sr.port = 65535; assert(msg_setup_req_valid(&sr));
+    sr.port = 0; assert(!msg_setup_req_valid(&sr));
+    sr.port = 65536; assert(!msg_setup_req_valid(&sr));
+    sr.port = 0xFFFFFFFFu; assert(!msg_setup_req_valid(&sr));
+    SetupReq nil = {{0}, 8080};
+    assert(!msg_setup_req_valid(&nil));
+
+    assert(msg_uuid_str_valid("00112233-4455-6677-8899-aabbccddeeff"));
+    assert(!msg_uuid_str_valid("../../etc/passwd"));
+    assert(!msg_uuid_str_valid("00112233-4455-6677-8899-aabbccddeeffa"));
+    assert(!msg_uuid_str_valid("00112233-4455-6677-8899-aabbccddeefg"));
+    assert(!msg_uuid_str_valid("0011223344556677-8899-aabbccddeeff00"));
+    assert(!msg_uuid_str_valid(NULL));
+}
+
 int main(void) {
     test_message_vectors();
     test_sas_vector();
     printf("ALL COMMS TESTS PASSED\n");
+    test_setup_req_validation();
     return 0;
 }

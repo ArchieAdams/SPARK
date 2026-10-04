@@ -49,6 +49,8 @@ class SetupService(
     @Volatile private var userAccepted = false
     @Volatile private var peerAccepted: Boolean? = null
     @Volatile private var sasCode = 0
+    @Volatile private var sasPkV: ByteArray? = null
+    private var flow = PairingFlow()
     private val lock = Any()
 
     data class SetupConfig(
@@ -86,6 +88,7 @@ class SetupService(
                 deviceId = UUID.randomUUID().toString()
                 devicePort = (10000..60000).random()
                 alias = "auth_$deviceId"
+                flow = PairingFlow()
 
                 KeyManager.deleteAlias(alias)
                 pkADer = KeyManager.generateOrGetKeystorePublicKey(alias).encoded  // DER (X.509 SPKI)
@@ -118,15 +121,19 @@ class SetupService(
         try {
             when (m.type) {
                 MsgType.MSG_COMMIT -> {
+                    if (!flow.onCommit()) {
+                        abort(AbortReason.PROTOCOL_ERROR, "Unexpected commit")
+                        return
+                    }
                     val c = Messages.parseCommit(m.payload)
                     pkVDer = c.pkV
                     commitC = c.c
-                    
+
                     // Generate nA and respond with MSG_SAS_NONCE
                     val nonce = ByteArray(32)
                     SecureRandom().nextBytes(nonce)
                     nA = nonce
-                    
+
                     channel?.send(
                         MsgType.MSG_SAS_NONCE,
                         Messages.sasNonce(pkADer!!, nA!!)
@@ -134,17 +141,26 @@ class SetupService(
                 }
 
                 MsgType.MSG_REVEAL -> {
+                    if (!flow.onReveal()) {
+                        abort(AbortReason.PROTOCOL_ERROR, "Unexpected reveal")
+                        return
+                    }
                     val rv = Messages.parseReveal(m.payload)
                     val expected = sha256(rv.nV + rv.r)
                     if (!expected.contentEquals(commitC)) {
                         abort(AbortReason.COMMITMENT_MISMATCH, "Commitment mismatch")
                         return
                     }
-                    sasCode = Messages.sasCode(pkVDer!!, pkADer!!, rv.nV, rv.r, nA!!)
+                    sasPkV = pkVDer
+                    sasCode = Messages.sasCode(sasPkV!!, pkADer!!, rv.nV, rv.r, nA!!)
                     onSasGenerated?.invoke(Messages.sasToEmoji(sasCode))
                 }
 
                 MsgType.MSG_SAS_CONFIRM -> {
+                    if (!flow.onPeerConfirm()) {
+                        abort(AbortReason.PROTOCOL_ERROR, "Unexpected SAS confirm")
+                        return
+                    }
                     peerAccepted = Messages.parseSasConfirm(m.payload)
                     maybeComplete()
                 }
@@ -163,6 +179,10 @@ class SetupService(
     }
 
     fun confirmSas(accept: Boolean) {
+        if (!flow.onUserConfirm()) {
+            Log.w(TAG, "confirmSas ignored in state ${flow.state}")
+            return
+        }
         userAccepted = accept
         if (!accept) {
             channel?.send(MsgType.MSG_SAS_CONFIRM, Messages.sasConfirm(false))
@@ -188,7 +208,7 @@ class SetupService(
                     deviceId = deviceId,
                     privateKeyAlias = alias,
                     publicKey = derToPem(pkADer!!),
-                    pcPublicKey = derToPem(pkVDer!!),
+                    pcPublicKey = derToPem(sasPkV!!),
                     devicePort = devicePort
                 )
                 saveConfig(config)
@@ -230,6 +250,7 @@ class SetupService(
     }
 
     private fun cleanup() {
+        flow.finish()
         channel?.close()
         channel = null
         ws?.disconnect()
