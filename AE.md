@@ -19,14 +19,14 @@ The app/PAM implementation now relies on the verifier nonce and ephemeral X25519
 
 ### Functional outcomes
 
-- **F1**: two-nonce SAS pairing establishes agreement on the exchanged keys, no key substitution (Table 2, pairing row 1). Verified by `Proofs/spark-setup.pv`.
-- **F2**: the single-nonce SAS (the earlier, vulnerable design) admits the grinding man-in-the-middle described in Section 5.2.4 — the same query as F1 is *false* here, which is the expected outcome, not a tool failure (Table 2, pairing row 2, ○). Verified by `Proofs/spark-setup-grinding.pv`.
-- **F3**: unlock matches a completed phone session, once, injective agreement (Table 2, authentication row 1: `verifierSuccess ⟹inj authenticatorFinished`). Verified by `Proofs/spark-remote.pv`.
-- **F4**: the phone completes only sessions a paired verifier started, once, injective agreement (Table 2, row 2: `authenticatorFinished ⟹inj verifierStarted`). Verified by `Proofs/spark-remote.pv`.
-- **F5**: no replayed or forged request reaches the user, injective agreement (Table 2, row 3: `authenticatorPrompted ⟹inj verifierStarted`). Verified by `Proofs/spark-remote.pv`.
-- **F6**: every unlock has a distinct approval of that session, injective agreement (Table 2, row 4: `verifierSuccess ⟹inj userApproved`). Verified by `Proofs/spark-remote.pv`.
-- **F7**: login only between devices paired with each other, agreement (Table 2, row 5: the two `... ⟹ paired(...)` queries). Verified by `Proofs/spark-remote.pv` (composed with pairing).
-- **F8**: session keys stay secret after later key compromise, forward secrecy, both in the reachability sense and the stronger real-or-random sense (Table 2, rows 6-7). Verified by `Proofs/spark-remote.pv` (`secret s` results).
+- **F1**: two-nonce SAS pairing establishes agreement on the exchanged keys, no key substitution (Table 2, pairing row 1). Verified by `Proofs/spark-pair-v2.pv`.
+- **F2**: the single-nonce SAS (the earlier, vulnerable design) admits the grinding man-in-the-middle described in Section 5.2.4 — the same query as F1 is *false* here, which is the expected outcome, not a tool failure (Table 2, pairing row 2, ○). Verified by `Proofs/spark-pair-v1.pv`.
+- **F3**: unlock matches a completed phone session, once, injective agreement (Table 2, authentication row 1: `verifierSuccess ⟹inj authenticatorFinished`). Verified by `Proofs/spark-auth.pv`.
+- **F4**: the phone completes only sessions a paired verifier started, once, injective agreement (Table 2, row 2: `authenticatorFinished ⟹inj verifierStarted`). Verified by `Proofs/spark-auth.pv`.
+- **F5**: no replayed or forged request reaches the user, injective agreement (Table 2, row 3: `authenticatorPrompted ⟹inj verifierStarted`). Verified by `Proofs/spark-auth.pv`.
+- **F6**: every unlock has a distinct approval of that session, injective agreement (Table 2, row 4: `verifierSuccess ⟹inj userApproved`). Verified by `Proofs/spark-auth.pv`.
+- **F7**: login only between devices paired with each other, agreement (Table 2, row 5: the two `... ⟹ paired(...)` queries). Verified by `Proofs/spark.pv` (pairing composed with authentication).
+- **F8**: session keys stay secret after later key compromise, forward secrecy, both in the reachability sense and the stronger real-or-random sense (Table 2, rows 6-7). Verified by `Proofs/spark-auth.pv` (`secret s` results).
 - **F9**: the hash commitment used in SPARK-Pairing is correct, binding, and hiding (Theorem 1). Verified by `Proofs/HashCommit.ec`.
 - **F10**: the PAM implementation (frame codec, communication) matches its specification. Verified by the `ctest` suite in `PAM/tests`.
 
@@ -50,17 +50,17 @@ This builds and runs the Proofs (via Docker, `Proofs/run-proofs.sh`) and builds 
 ## A.3 Functional evaluation
 
 1. Run `./quickstart.sh` from the repo root. Allow extra time on the first run: the ProVerif/EasyCrypt/PAM Docker images are built from scratch, and opam package installs in particular can take a while. Repeat runs are fast since Docker caches the images.
-2. Check the ProVerif output for `spark-setup.pv`:
+2. Check the ProVerif output for `spark-pair-v2.pv`:
    ```
    RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is true.
    ```
    This confirms **F1**.
-3. Check the ProVerif output for `spark-setup-grinding.pv`:
+3. Check the ProVerif output for `spark-pair-v1.pv`:
    ```
    RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is false.
    ```
    The `is false` here is the expected outcome, not a tool failure: it reconstructs the grinding attack the two-nonce design in F1 closes. This confirms **F2**.
-4. Check the ProVerif output for `spark-remote.pv`:
+4. Check the ProVerif output for `spark-auth.pv`. `spark.pv` (full composition) prints the same lines plus the pairing query, and `paired(v,a)` is replaced by `verifierPaired(v,a) && authenticatorPaired(v,a)`:
    ```
    RESULT Query secret s [real_or_random] encoded as equivalence is true.
    RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) is true.

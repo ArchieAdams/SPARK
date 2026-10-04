@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Secure Passwordless Authentication with Reveal-commtted Knowledge
+ *
+ * Variant v2.
+ *
+ * This variant uses nonces from both Verifier and Authenticator.
  *)
 
 (* The untrusted network (Bluetooth/WiFi/ntfy) *)
@@ -35,16 +39,19 @@ fun sasMatch(bitstring, bitstring): bool reduc
         sasMatch(x, x) = true
     otherwise forall v: pkey, m: pkey, b: bitstring, nA': nonce, a: pkey, nA: nonce;
         sasMatch( sas(v, m, b, nA'),
-                  sas(pk(forgeVkey(v, m, b, nA', a, nA)), a,
-                      (forgeN(v, m, b, nA', a, nA), forgeR(v, m, b, nA', a, nA)),
-                      nA) ) = true.
+                  sas(pk(forgeVkey(v, m, b, nA', a, nA)), a, (
+                        forgeN(v, m, b, nA', a, nA),
+                        forgeR(v, m, b, nA', a, nA)
+                       ), nA
+                     )
+                ) = true.
 
 (* Events to track the state of the entities *)
 event verifierGenerated(pkey, pkey, bitstring).
 event authenticatorGenerated(pkey, pkey, bitstring).
 event userVerified(bitstring, bitstring).
 
-(* Verifier (Laptop) *)
+(* Verifier (Desktop/Laptop) *)
 let Verifier() =
   new sk_V :skey;
   let pk_V = pk(sk_V) in
@@ -74,7 +81,7 @@ let Authenticator() =
     out(visual_channel_A, sas_A).
 
 
-(* The Human User (Out-Of-Band Verifier)      *)
+(* The Human User *)
 let HumanUser() =
   in(visual_channel_V, visual_sas_V: bitstring);
   in(visual_channel_A, visual_sas_A: bitstring);

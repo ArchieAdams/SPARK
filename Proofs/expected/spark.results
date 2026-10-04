@@ -1,0 +1,8 @@
+RESULT Query secret s [real_or_random] encoded as equivalence is true.
+RESULT event(userVerified(sV_1,sA_1)) ==> event(verifierGenerated(v_1,a_1,sV_1)) && event(authenticatorGenerated(v_1,a_1,sA_1)) is true.
+RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(authenticatorFinished(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(authenticatorPrompted(v_1,a_1,eV_3,eA_3)) ==> inj-event(verifierStarted(v_1,a_1,eV_3,eA_3)) is true.
+RESULT inj-event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> inj-event(userApproved(v_1,a_1,eV_3,eA_3)) is true.
+RESULT event(verifierSuccess(v_1,a_1,eV_3,eA_3)) ==> event(verifierPaired(v_1,a_1)) && event(authenticatorPaired(v_1,a_1)) is true.
+RESULT secret s is true.

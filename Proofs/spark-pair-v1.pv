@@ -3,9 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Secure Passwordless Authentication with Reveal-commtted Knowledge
+ *
+ * Variant v1.
+ *
+ * This was an attempt to protect to protect against grinding attack using
+ * a fresh nonce that could not be grinded offline/beforehand.
+ * We demonstrate that the same problem can arises if A doesn't use
+ * a fresh value.
  *)
 
-(* The untrusted network (Bluetooth/WiFi/ntfy) *)
+(* The untrusted network (Bluetooth/WiFi/relay) *)
 free c: channel.
 
 (* The user's eyes / Out-Of-Band secure channel *)
@@ -35,15 +42,19 @@ fun sasMatch(bitstring, bitstring): bool reduc
         sasMatch(x, x) = true
     otherwise forall v: pkey, m: pkey, b: bitstring, a: pkey;
         sasMatch( sas(v, m, b),
-                  sas(pk(forgeVkey(v, m, b, a)), a,
-                      (forgeN(v, m, b, a), forgeR(v, m, b, a))) ) = true.
+                  sas(pk(forgeVkey(v, m, b, a)), a, (
+                       forgeN(v, m, b, a),
+                       forgeR(v, m, b, a)
+                       )
+                     )
+                ) = true.
 
-(* Events to track the state of the entities *)
+(* Track the state of the entities *)
 event verifierGenerated(pkey, pkey, bitstring).
 event authenticatorGenerated(pkey, pkey, bitstring).
 event userVerified(bitstring, bitstring).
 
-(* Verifier (Laptop) *)
+(* Verifier (Desktop/Laptop) *)
 let Verifier() =
   new sk_V :skey;
   let pk_V = pk(sk_V) in
@@ -72,7 +83,7 @@ let Authenticator() =
     out(visual_channel_A, sas_A).
 
 
-(* The Human User (Out-Of-Band Verifier)      *)
+(* The Human User *)
 let HumanUser() =
   in(visual_channel_V, visual_sas_V: bitstring);
   in(visual_channel_A, visual_sas_A: bitstring);

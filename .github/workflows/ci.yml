@@ -42,13 +42,19 @@ jobs:
           load: true
           cache-from: type=gha,scope=proverif
           cache-to: type=gha,scope=proverif,mode=max
-      - run: ./run-proverif-setup.sh | tee proverif-setup.log
+      - run: ./run-proverif-pair-v2.sh | tee proverif-pair-v2.log
         working-directory: Proofs
-      - run: ./run-proverif-remote.sh | tee proverif-remote.log
+      - run: ./run-proverif-pair-v1.sh | tee proverif-pair-v1.log
+        working-directory: Proofs
+      - run: ./run-proverif-auth.sh | tee proverif-auth.log
+        working-directory: Proofs
+      - run: ./run-proverif-full.sh | tee proverif-full.log
         working-directory: Proofs
       - run: |
-          grep '^RESULT' proverif-setup.log  | diff - expected/spark-setup.results
-          grep '^RESULT' proverif-remote.log | diff - expected/spark-remote.results
+          grep '^RESULT' proverif-pair-v2.log | diff - expected/spark-pair-v2.results
+          grep '^RESULT' proverif-pair-v1.log | diff - expected/spark-pair-v1.results
+          grep '^RESULT' proverif-auth.log    | diff - expected/spark-auth.results
+          grep '^RESULT' proverif-full.log    | diff - expected/spark.results
         working-directory: Proofs
       - uses: actions/upload-artifact@v4
         if: always()

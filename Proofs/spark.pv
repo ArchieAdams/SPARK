@@ -1,0 +1,241 @@
+(*
+ * Copyright (C) 2026 Archie Adams, Roberto Metere, University of York
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Secure Passwordless Authentication with Reveal-committed Knowledge
+ *
+ * Composition of SPARK-Pairing (v2) and SPARK-Authentication.
+ *)
+
+(* The untrusted network (Bluetooth / Wi-Fi) *)
+free c: channel.
+
+(* The user's eyes / Out-Of-Band secure channel *)
+free visual_channel_V: channel [private].
+free visual_channel_A: channel [private].
+
+free confirm_channel_V: channel [private].
+free confirm_channel_A: channel [private].
+
+(* Interaction user-phone *)
+free prompt: channel [private].
+free approval: channel [private].
+
+type skey.
+type pkey.
+type nonce.
+type commitment.
+type exponent.
+type group.
+type key.
+
+(* ECDSA P-256 signatures *)
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; verify(sign(m, k), pk(k), m) = true.
+reduc forall m: bitstring, k: skey; getmess(sign(m, k)) = m.
+
+(* X25519 ephemeral Diffie-Hellman *)
+const g: group [data].
+fun exp(group, exponent): group.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+(* HKDF-SHA-256; the second argument is the info field *)
+fun kdf(group, bitstring): key.
+
+(* AES-GCM under K *)
+fun enc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; dec(enc(m, k), k) = m.
+
+(* Domain-separation labels of the two signed login messages *)
+const lreq: bitstring.
+const lresp: bitstring.
+
+(* Functions used in Pairing *)
+fun sas(pkey, pkey, bitstring, nonce): bitstring.
+fun commit(bitstring): commitment.
+
+(* Grinding attack *)
+fun forgeVkey(pkey, pkey, bitstring, nonce, pkey, nonce): skey.
+fun forgeN(pkey, pkey, bitstring, nonce, pkey, nonce): nonce.
+fun forgeR(pkey, pkey, bitstring, nonce, pkey, nonce): bitstring.
+
+fun sasMatch(bitstring, bitstring): bool reduc
+    forall x: bitstring;
+        sasMatch(x, x) = true
+    otherwise forall v: pkey, m: pkey, b: bitstring, nA': nonce, a: pkey, nA: nonce;
+        sasMatch( sas(v, m, b, nA'),
+                  sas(pk(forgeVkey(v, m, b, nA', a, nA)), a, (
+                        forgeN(v, m, b, nA', a, nA),
+                        forgeR(v, m, b, nA', a, nA)
+                       ), nA
+                     )
+                ) = true.
+
+(* Honest devices, and the trust memory *)
+table idV(skey, pkey).
+table idA(skey, pkey).
+table trusted_V(pkey, pkey). (* verifier's memory (own key, paired phone)    *)
+table trusted_A(pkey, pkey). (*    phone's memoey (paired verifier, own key) *)
+
+event verifierGenerated(pkey, pkey, bitstring).
+event authenticatorGenerated(pkey, pkey, bitstring).
+event userVerified(bitstring, bitstring).
+event verifierPaired(pkey, pkey).
+event authenticatorPaired(pkey, pkey).
+
+event verifierStarted(pkey, pkey, group, group).
+event authenticatorPrompted(pkey, pkey, group, group).
+event userApproved(pkey, pkey, group, group).
+event authenticatorFinished(pkey, pkey, group, group).
+event verifierSuccess(pkey, pkey, group, group).
+
+let RegisterV() =
+  new sk_V: skey;
+  let pk_V = pk(sk_V) in
+  insert idV(sk_V, pk_V);
+  out(c, pk_V).
+
+let RegisterA() =
+  new sk_A: skey;
+  let pk_A = pk(sk_A) in
+  insert idA(sk_A, pk_A);
+  out(c, pk_A).
+
+(* == Pair == BEGIN *)
+
+(* Verifier: commits before seeing pk_A and nA *)
+let PairVerifier() =
+  in(c, pk_V: pkey);
+  get idV(sk_V, =pk_V) in
+  new N: nonce;
+  new r: bitstring;
+  out(c, (pk_V, commit((N, r))));
+  in(c, (pk_A': pkey, nA': nonce)) [precise];
+  out(c, (N, r));
+  let sas_V = sas(pk_V, pk_A', (N, r), nA') in
+  event verifierGenerated(pk_V, pk_A', sas_V);
+  out(visual_channel_V, sas_V);
+  in(confirm_channel_V, =sas_V);
+  event verifierPaired(pk_V, pk_A');
+  insert trusted_V(pk_V, pk_A').
+
+(* Authenticator: draws nA only after receiving the commitment *)
+let PairAuthenticator() =
+  in(c, pk_A: pkey);
+  get idA(sk_A, =pk_A) in
+  in(c, (pk_V': pkey, c': commitment));
+  new nA: nonce;
+  out(c, (pk_A, nA));
+  in(c, (N': nonce, r': bitstring));
+  if commit((N', r')) = c' then
+    let sas_A = sas(pk_V', pk_A, (N', r'), nA) in
+    event authenticatorGenerated(pk_V', pk_A, sas_A);
+    out(visual_channel_A, sas_A);
+    in(confirm_channel_A, =sas_A);
+    event authenticatorPaired(pk_V', pk_A);
+    insert trusted_A(pk_V', pk_A).
+
+(* The user compares the two strings and confirms only on a match *)
+let PairUser() =
+  in(visual_channel_V, s_V: bitstring);
+  in(visual_channel_A, s_A: bitstring);
+  if s_V = s_A then
+    event userVerified(s_V, s_A);
+    out(confirm_channel_V, s_V);
+    out(confirm_channel_A, s_A).
+
+(* == Pair == END *)
+
+(* == Auth == BEGIN *)
+let Verifier() =
+  in(c, pk_V: pkey);
+  get idV(sk_V, =pk_V) in
+  get trusted_V(=pk_V, pk_A) in                 (* the paired phone *)
+  new x: exponent;
+  let eV = exp(g, x) in
+  out(c, eV);                                                   (* 1 *)
+  in(c, eA: group);                                                 (* 2 *)
+  let K = kdf(exp(eA, x), (eV, eA, pk_V, pk_A)) in
+  event verifierStarted(pk_V, pk_A, eV, eA);
+  out(c, enc(sign((lreq, eV, eA, pk_V, pk_A), sk_V), K));      (* 3 *)
+  in(c, m4: bitstring);                                         (* 4 *)
+  let sA = dec(m4, K) in
+  if verify(sA, pk_A, (lresp, eV, eA, pk_A, pk_V)) then
+    event verifierSuccess(pk_V, pk_A, eV, eA);
+    new s: bitstring;
+    out(c, enc(s, K)).                      (* forward-secrecy probe *)
+
+let Authenticator() =
+  in(c, pk_A: pkey);
+  get idA(sk_A, =pk_A) in
+  in(c, eV: group);                                                 (* 1 *)
+  new y: exponent;
+  let eA = exp(g, y) in
+  out(c, eA);                                                   (* 2 *)
+  in(c, m3: bitstring);                                         (* 3 *)
+  get trusted_A(pk_V, =pk_A) in          (* trial over paired verifiers *)
+  let K = kdf(exp(eV, y), (eV, eA, pk_V, pk_A)) in
+  let sV = dec(m3, K) in
+  if verify(sV, pk_V, (lreq, eV, eA, pk_V, pk_A)) then
+    event authenticatorPrompted(pk_V, pk_A, eV, eA);
+    out(prompt, (pk_V, pk_A, eV, eA));
+    in(approval, (=pk_V, =pk_A, =eV, =eA));
+    event authenticatorFinished(pk_V, pk_A, eV, eA);
+    out(c, enc(sign((lresp, eV, eA, pk_A, pk_V), sk_A), K)).   (* 4 *)
+
+(* The user approves whatever the phone shows *)
+let User() =
+  in(prompt, (v: pkey, a: pkey, eV: group, eA: group));
+  event userApproved(v, a, eV, eA);
+  out(approval, (v, a, eV, eA)).
+  
+(* == Auth == END *)
+
+(* Pairing: a confirmed match means both devices used the same pair of keys *)
+query v: pkey, a: pkey, sV: bitstring, sA: bitstring;
+  event(userVerified(sV, sA)) ==>
+    ( event(verifierGenerated(v, a, sV)) && event(authenticatorGenerated(v, a, sA)) ).
+
+(* An unlock matches a completed phone session *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(authenticatorFinished(v, a, eV, eA)).
+
+(* The phone completes only sessions a paired verifier started *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(authenticatorFinished(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
+
+(* No replayed or forged request reaches the user *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(authenticatorPrompted(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
+
+(* Every unlock is backed by a distinct approval of that very session *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(userApproved(v, a, eV, eA)).
+
+(*
+ * An unlock happens only between devices that both completed a
+ * pairing with each other
+ *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  event(verifierSuccess(v, a, eV, eA)) ==>
+    ( event(verifierPaired(v, a)) && event(authenticatorPaired(v, a)) ).
+
+(*
+ * Forward secrecy of the session key of completed logins:
+ *  - reachability (weak) and
+ *  - real-or-random (strong)
+ *)
+query secret s.
+query secret s [real_or_random].
+
+process
+    ( !RegisterV() | !RegisterA()
+    | !PairVerifier() | !PairAuthenticator() | !PairUser()
+    | !Verifier() | !Authenticator() | !User() )
+  | ( phase 1;
+      (
+          (! get idV(skv, pkv) in out(c, skv))
+        | (! get idA(ska, pka) in out(c, ska)) 
+      )
+    )

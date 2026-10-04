@@ -15,17 +15,20 @@ run() {
   fi
 }
 
-run "run-proverif-setup.sh"
-run "run-proverif-setup-grinding.sh"
-run "run-proverif-remote.sh"
+run "run-proverif-pair-v2.sh"
+run "run-proverif-pair-v1.sh"
+run "run-proverif-auth.sh"
+run "run-proverif-full.sh"
 run "run-easycrypt.sh"
 
-echo -e "\nSetup ProVerif (two-nonce SAS, expect all queries true):"
-grep -h "^RESULT" logs/run-proverif-setup.log 2>/dev/null || echo "none found"
-echo -e "\nSetup ProVerif, grinding model (single-nonce SAS, expect 'is false' -- this is the attack, not a tool failure):"
-grep -h "^RESULT" logs/run-proverif-setup-grinding.log 2>/dev/null || echo "none found"
-echo -e "\nRemote ProVerif:"
-grep -h "^RESULT" logs/run-proverif-remote.log 2>/dev/null || echo "none found"
+echo -e "\nPairing v2 (two-nonce SAS, expect all queries true):"
+grep -h "^RESULT" logs/run-proverif-pair-v2.log 2>/dev/null || echo "none found"
+echo -e "\nPairing v1 (single-nonce SAS, expect 'is false' -- this is the attack, not a tool failure):"
+grep -h "^RESULT" logs/run-proverif-pair-v1.log 2>/dev/null || echo "none found"
+echo -e "\nAuthentication:"
+grep -h "^RESULT" logs/run-proverif-auth.log 2>/dev/null || echo "none found"
+echo -e "\nFull composition (pairing v2 + authentication):"
+grep -h "^RESULT" logs/run-proverif-full.log 2>/dev/null || echo "none found"
 echo -e "\nEasyCrypt:"
 grep -hE "^(Clean pass|WARNING|FAILED|Exit code)" logs/run-easycrypt.log 2>/dev/null || echo "none found"
 

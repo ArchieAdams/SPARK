@@ -37,9 +37,10 @@ Run `./quickstart.sh` from the repo root to check the Proofs and PAM components 
 The `Proofs` directory contains the formal verification proofs for the SPARK protocol, implemented using ProVerif and EasyCrypt.
 
 The `Proofs` directory contains the following files:
-- `spark-setup.pv`: ProVerif model of the SPARK setup phase (two-nonce SAS).
-- `spark-setup-grinding.pv`: the same model with a single-nonce SAS, reconstructing the man-in-the-middle grinding attack the two-nonce fix closes (Section 5.2.4).
-- `spark-remote.pv`: ProVerif model of the SPARK authentication phase, composed with pairing.
+- `spark-pair-v2.pv`: ProVerif model of SPARK-Pairing with nonces from both verifier and authenticator (two-nonce SAS).
+- `spark-pair-v1.pv`: the single-nonce SAS variant, reconstructing the man-in-the-middle grinding attack the two-nonce fix closes (Section 5.2.4).
+- `spark-auth.pv`: ProVerif model of SPARK-Authentication.
+- `spark.pv`: ProVerif model of the full protocol, composing pairing (v2) and authentication.
 - `HashCommit.ec`: EasyCrypt model of the hash commitment scheme used in SPARK.
 
 In order to run the proofs, you will need to have ProVerif and EasyCrypt installed **or** docker.
@@ -50,13 +51,16 @@ In order to run the proofs, you will need to have ProVerif and EasyCrypt install
 2. Navigate to the `Proofs` directory.
 3. Run the following command to execute the ProVerif proofs:
    ```bash
-   proverif spark-setup.pv
+   proverif spark-pair-v2.pv
    ```
    ```bash
-   proverif spark-setup-grinding.pv
+   proverif spark-pair-v1.pv
    ```
    ```bash
-   proverif spark-remote.pv
+   proverif spark-auth.pv
+   ```
+   ```bash
+   proverif spark.pv
    ```
 4. Run the following command to execute the EasyCrypt proofs:
    ```bash
@@ -73,18 +77,18 @@ We have made some simple bash scripts to run the proofs in a Docker container. T
     ```bash
     ./run-proofs.sh
     ```
-   You can also run each proof individually with `./run-proverif-setup.sh`, `./run-proverif-setup-grinding.sh`, `./run-proverif-remote.sh` and `./run-easycrypt.sh`.
+   You can also run each proof individually with `./run-proverif-pair-v2.sh`, `./run-proverif-pair-v1.sh`, `./run-proverif-auth.sh`, `./run-proverif-full.sh` and `./run-easycrypt.sh`.
 
 
 #### Expected output
 
-The ProVerif proofs print one `RESULT` line per security query. `spark-setup.pv` (two-nonce SAS) should end with:
+The ProVerif proofs print one `RESULT` line per security query. `spark-pair-v2.pv` (two-nonce SAS) should end with:
 
 ```
 RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is true.
 ```
 
-`spark-setup-grinding.pv`, the single-nonce SAS variant, should print the same query as **false**:
+`spark-pair-v1.pv`, the single-nonce SAS variant, should print the same query as **false**:
 
 ```
 RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && event(authenticatorGenerated(v,a,sasA)) is false.
@@ -92,7 +96,7 @@ RESULT event(userVerified(sasV,sasA)) ==> event(verifierGenerated(v,a,sasV)) && 
 
 This is expected, not a failure: it is the man-in-the-middle grinding attack the two-nonce fix closes (Section 5.2.4).
 
-`spark-remote.pv` should print:
+`spark-auth.pv` should print:
 
 ```
 RESULT Query secret s [real_or_random] encoded as equivalence is true.

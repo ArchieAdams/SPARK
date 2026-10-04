@@ -1,0 +1,165 @@
+(*
+ * Copyright (C) 2026 Archie Adams, Roberto Metere, University of York
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Secure Passwordless Authentication with Reveal-committed Knowledge
+ *
+ * 
+ *)
+
+(* The untrusted network (Bluetooth / Wi-Fi) *)
+free c: channel.
+
+(* Interaction user-phone *)
+free prompt: channel [private].
+free approval: channel [private].
+
+type skey.
+type pkey.
+type exponent.
+type group.
+type key.
+
+(* ECDSA P-256 signatures *)
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; verify(sign(m, k), pk(k), m) = true.
+reduc forall m: bitstring, k: skey; getmess(sign(m, k)) = m.
+
+(* X25519 ephemeral Diffie-Hellman *)
+const g: group [data].
+fun exp(group, exponent): group.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+(* HKDF-SHA-256; the second argument is the info field *)
+fun kdf(group, bitstring): key.
+
+(* AES-GCM under K *)
+fun enc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; dec(enc(m, k), k) = m.
+
+(* Domain-separation labels of the two signed messages *)
+const lreq: bitstring.
+const lresp: bitstring.
+
+(* Honest devices, and the trust memory *)
+table idV(skey, pkey).
+table idA(skey, pkey).
+table trusted_V(pkey, pkey). (* verifier's memory (own key, paired phone)    *)
+table trusted_A(pkey, pkey). (*    phone's memoey (paired verifier, own key) *)
+
+event paired(pkey, pkey).
+event verifierStarted(pkey, pkey, group, group).
+event authenticatorPrompted(pkey, pkey, group, group).
+event userApproved(pkey, pkey, group, group).
+event authenticatorFinished(pkey, pkey, group, group).
+event verifierSuccess(pkey, pkey, group, group).
+
+let RegisterV() =
+  new sk_V: skey;
+  let pk_V = pk(sk_V) in
+  insert idV(sk_V, pk_V);
+  out(c, pk_V).
+
+let RegisterA() =
+  new sk_A: skey;
+  let pk_A = pk(sk_A) in
+  insert idA(sk_A, pk_A);
+  out(c, pk_A).
+
+(*
+ * The guarantee of SPARK-Pairing is here and assumption.
+ * Only genuine device keys get paired.
+ * The adversary chooses which ones, any number of times.
+ *)
+let Pairing() =
+  in(c, (pk_V: pkey, pk_A: pkey));
+  get idV(sk_V, =pk_V) in
+  get idA(sk_A, =pk_A) in
+  event paired(pk_V, pk_A);
+  insert trusted_V(pk_V, pk_A);
+  insert trusted_A(pk_V, pk_A).
+
+
+let Verifier() =
+  in(c, pk_V: pkey);
+  get idV(sk_V, =pk_V) in
+  get trusted_V(=pk_V, pk_A) in                 (* the paired phone *)
+  new x: exponent;
+  let eV = exp(g, x) in
+  out(c, eV);                                                   (* 1 *)
+  in(c, eA: group);                                                 (* 2 *)
+  let K = kdf(exp(eA, x), (eV, eA, pk_V, pk_A)) in
+  event verifierStarted(pk_V, pk_A, eV, eA);
+  out(c, enc(sign((lreq, eV, eA, pk_V, pk_A), sk_V), K));      (* 3 *)
+  in(c, m4: bitstring);                                         (* 4 *)
+  let sA = dec(m4, K) in
+  if verify(sA, pk_A, (lresp, eV, eA, pk_A, pk_V)) then
+    event verifierSuccess(pk_V, pk_A, eV, eA);
+    new s: bitstring;
+    out(c, enc(s, K)).                      (* forward-secrecy probe *)
+
+let Authenticator() =
+  in(c, pk_A: pkey);
+  get idA(sk_A, =pk_A) in
+  in(c, eV: group);                                                 (* 1 *)
+  new y: exponent;
+  let eA = exp(g, y) in
+  out(c, eA);                                                   (* 2 *)
+  in(c, m3: bitstring);                                         (* 3 *)
+  get trusted_A(pk_V, =pk_A) in          (* trial over paired verifiers *)
+  let K = kdf(exp(eV, y), (eV, eA, pk_V, pk_A)) in
+  let sV = dec(m3, K) in
+  if verify(sV, pk_V, (lreq, eV, eA, pk_V, pk_A)) then
+    (* verify first, prompt second: only genuine requests reach the user *)
+    event authenticatorPrompted(pk_V, pk_A, eV, eA);
+    out(prompt, (pk_V, pk_A, eV, eA));
+    in(approval, (=pk_V, =pk_A, =eV, =eA));
+    event authenticatorFinished(pk_V, pk_A, eV, eA);
+    out(c, enc(sign((lresp, eV, eA, pk_A, pk_V), sk_A), K)).   (* 4 *)
+
+(* The user approves whatever the phone shows *)
+let User() =
+  in(prompt, (v: pkey, a: pkey, eV: group, eA: group));
+  event userApproved(v, a, eV, eA);
+  out(approval, (v, a, eV, eA)).
+
+(* An unlock matches a completed phone session *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(authenticatorFinished(v, a, eV, eA)).
+
+(* The phone completes only sessions a paired verifier started *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(authenticatorFinished(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
+
+(* No replayed or forged request reaches the user *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(authenticatorPrompted(v, a, eV, eA)) ==> inj-event(verifierStarted(v, a, eV, eA)).
+
+(* Every unlock is backed by a distinct approval of that very session *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  inj-event(verifierSuccess(v, a, eV, eA)) ==> inj-event(userApproved(v, a, eV, eA)).
+
+(* Logins happen only between paired devices *)
+query v: pkey, a: pkey, eV: group, eA: group;
+  event(verifierSuccess(v, a, eV, eA)) ==> event(paired(v, a)).
+query v: pkey, a: pkey, eV: group, eA: group;
+  event(authenticatorFinished(v, a, eV, eA)) ==> event(paired(v, a)).
+
+(*
+ * Forward secrecy of the session key of completed logins:
+ *  - reachability (weak) and
+ *  - real-or-random (strong)
+ *)
+query secret s.
+query secret s [real_or_random].
+
+process
+    ( !RegisterV() | !RegisterA() | !Pairing()
+    | !Verifier() | !Authenticator() | !User() )
+  | ( phase 1;
+      (
+          (! get idV(skv, pkv) in out(c, skv))
+        | (! get idA(ska, pka) in out(c, ska)) 
+      )
+    )
