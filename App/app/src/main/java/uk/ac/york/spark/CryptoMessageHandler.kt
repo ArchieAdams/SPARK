@@ -14,7 +14,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import java.io.StringReader
 import java.nio.ByteBuffer
 import java.security.MessageDigest
-import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Security
@@ -74,11 +73,6 @@ class CryptoMessageHandler(private val context: Context) {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(BouncyCastleProvider())
         }
-    }
-
-    private fun getPrivateKey(): PrivateKey {
-        val config = setup.getStoredConfig() ?: throw IllegalStateException("Missing setup config")
-        return KeyManager.getPrivateKey(config.privateKeyAlias) ?: throw IllegalStateException("Private key missing")
     }
 
     private fun getPcPublicKey(): PublicKey =
@@ -170,7 +164,7 @@ class CryptoMessageHandler(private val context: Context) {
         return false
     }
 
-    fun handleStep4(sessionId: String): ByteArray? {
+    fun handleStep4(sessionId: String, signer: Signature): ByteArray? {
         val session = currentSession ?: return null
         if (!session.verifiedStep3 || session.sessionId != sessionId) return null
         try {
@@ -180,8 +174,6 @@ class CryptoMessageHandler(private val context: Context) {
             // σA = Sign(skA, "resp" || ephV || ephA || pkA || pkV)
             val mA = "resp".toByteArray() + session.ephV + session.ephA_pk + putBe32(pkA.size) + pkA + putBe32(pkV.size) + pkV
 
-            val signer = Signature.getInstance("SHA256withECDSA")
-            signer.initSign(getPrivateKey())
             signer.update(mA)
             val sigmaA = signer.sign()
 

@@ -84,7 +84,7 @@ class ConnectionForegroundService : Service(), ConnectionListener {
                         return
                     }
                     clearPendingAuth()
-                    processApprovedChallenge(sessionId)
+                    processApprovedChallenge(intent.getByteArrayExtra(LoginApprovalActivity.EXTRA_RESULT_RESPONSE))
                 }
                 LoginApprovalActivity.ACTION_DENIED -> {
                     clearPendingAuth()
@@ -198,15 +198,13 @@ class ConnectionForegroundService : Service(), ConnectionListener {
         startActivity(intent)
     }
 
-    private fun processApprovedChallenge(sessionId: String) {
+    private fun processApprovedChallenge(response: ByteArray?) {
         try {
-            val handler = CryptoMessageHandler(this)
-            val response = handler.handleStep4(sessionId)
             if (response != null) {
                 channel?.send(MsgType.MSG_AUTH_STEP4, response)
                 uiMessageListener?.onMessage("✓ Login approved")
             } else {
-                uiMessageListener?.onMessage("✗ ${handler.lastUserErrorMessage ?: "Auth failed"}")
+                uiMessageListener?.onMessage("✗ Auth failed")
                 channel?.send(MsgType.MSG_ABORT, byteArrayOf(3))
             }
         } catch (e: Exception) {

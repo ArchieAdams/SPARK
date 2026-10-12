@@ -24,6 +24,7 @@ class LoginApprovalActivity : AppCompatActivity() {
         const val ACTION_APPROVED = "uk.ac.york.spark.LOGIN_APPROVED"
         const val ACTION_DENIED  = "uk.ac.york.spark.LOGIN_DENIED"
         const val EXTRA_RESULT_CHALLENGE = "extra_result_challenge"
+        const val EXTRA_RESULT_RESPONSE = "extra_result_response"
         private const val COUNTDOWN_MS = 30_000L
     }
 
@@ -83,10 +84,9 @@ class LoginApprovalActivity : AppCompatActivity() {
 
         val biometricManager = BiometricManager.from(this)
         val canAuth = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-            BiometricManager.Authenticators.BIOMETRIC_WEAK
+            BiometricManager.Authenticators.BIOMETRIC_STRONG
         )
-        
+
         if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) {
             biometricHint.text = "Tap Approve to confirm"
         }
@@ -110,11 +110,24 @@ class LoginApprovalActivity : AppCompatActivity() {
     }
 
     private fun launchBiometricPrompt() {
+        val sessionId = challengePayload ?: return
+        val signer = try {
+            KeyManager.signatureFor(SetupService(this).getStoredConfig()!!.privateKeyAlias)
+        } catch (e: Exception) {
+            Log.e("LoginApproval", "Signing key unavailable", e)
+            Toast.makeText(this, "Signing key invalidated, please pair again", Toast.LENGTH_LONG).show()
+            denyLogin()
+            return
+        }
+
         val executor = ContextCompat.getMainExecutor(this)
         val callback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 super.onAuthenticationSucceeded(result)
-                approveLogin()
+                val response = result.cryptoObject?.signature?.let {
+                    CryptoMessageHandler(this@LoginApprovalActivity).handleStep4(sessionId, it)
+                }
+                approveLogin(response)
             }
 
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -130,13 +143,14 @@ class LoginApprovalActivity : AppCompatActivity() {
             .setConfirmationRequired(true)
             .build()
 
-        BiometricPrompt(this, executor, callback).authenticate(promptInfo)
+        BiometricPrompt(this, executor, callback).authenticate(promptInfo, BiometricPrompt.CryptoObject(signer))
     }
 
-    private fun approveLogin() {
+    private fun approveLogin(response: ByteArray?) {
         countDownTimer?.cancel()
         val intent = Intent(ACTION_APPROVED).apply {
             putExtra(EXTRA_RESULT_CHALLENGE, challengePayload)
+            putExtra(EXTRA_RESULT_RESPONSE, response)
             setPackage(packageName)
         }
         sendBroadcast(intent)

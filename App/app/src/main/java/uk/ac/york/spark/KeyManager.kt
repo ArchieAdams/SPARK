@@ -11,6 +11,7 @@ import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.Security
+import java.security.Signature
 import java.security.spec.ECGenParameterSpec
 
 object KeyManager {
@@ -37,11 +38,15 @@ object KeyManager {
         )
             .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
             .setDigests(KeyProperties.DIGEST_SHA256)
+            .setUserAuthenticationRequired(true)
             .build()
 
         kpg.initialize(spec)
         return kpg.generateKeyPair().public
     }
+
+    fun signatureFor(alias: String): Signature =
+        Signature.getInstance("SHA256withECDSA").apply { initSign(getPrivateKey(alias)) }
 
     fun getPrivateKey(alias: String): PrivateKey? {
         return try {
